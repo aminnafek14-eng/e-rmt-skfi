@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistem Kehadiran — SK Felda Inas</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+--mg:#5a7a4a;--mg2:#4a6a3a;--mg3:#3a5a2a;--mgp:#e8f2e0;--mgp2:#f2f8ec;--mgp3:#d4e8c4;
+--pk:#d45a78;--pk2:#c04868;--pkp:#fde8ef;--pkp2:#fff0f4;--pkp3:#f8d0dc;
+--cream:#fafaf7;--white:#fff;--bd:#e4ece0;--t1:#2a3a22;--t2:#5a6a52;--t3:#8a9a82;
+--bl:#4a7ab0;--blp:#e4f0f8;
+--sh1:0 2px 8px rgba(90,122,74,.10);--sh2:0 6px 24px rgba(90,122,74,.14);--sh3:0 12px 48px rgba(90,122,74,.18);
+--r:14px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--cream);color:var(--t1);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--mgp3);border-radius:10px}
+
+/* ── LOGIN ── */
+.ls{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(ellipse at 20% 50%,rgba(232,242,224,.8) 0%,transparent 60%),radial-gradient(ellipse at 80% 30%,rgba(253,232,239,.8) 0%,transparent 60%),#f8faf5}
+.lc{background:var(--white);border-radius:24px;padding:40px 36px;width:100%;max-width:400px;box-shadow:var(--sh3)}
+.l-icon-row{display:flex;justify-content:center;gap:10px;margin-bottom:26px}
+.l-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+.l-icon.g{background:var(--mgp)}
+.l-icon.p{background:var(--pkp)}
+.l-icon svg{width:24px;height:24px}
+.l-title{text-align:center;margin-bottom:26px}
+.l-title h1{font-size:26px;font-weight:800;color:var(--mg2);letter-spacing:-.5px}
+.l-title p{font-size:13px;color:var(--t3);margin-top:4px}
+.ltabs{display:flex;background:var(--mgp2);border-radius:10px;padding:4px;margin-bottom:20px;gap:4px}
+.ltab{flex:1;padding:9px;border:none;background:transparent;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:var(--t3);transition:all .2s}
+.ltab.active{background:var(--white);color:var(--mg2);font-weight:600;box-shadow:var(--sh1)}
+.ibox{border-radius:10px;padding:11px 14px;font-size:12px;margin-bottom:18px;line-height:1.6;display:flex;gap:8px;align-items:flex-start}
+.ibox.g{background:var(--mgp);border:1px solid var(--mgp3);color:var(--mg3)}
+.ibox.p{background:var(--pkp);border:1px solid var(--pkp3);color:var(--pk2)}
+.ff{margin-bottom:16px}
+.ff label{display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.ff input{width:100%;padding:12px 14px;border:1.5px solid var(--bd);border-radius:var(--rs);font-size:14px;color:var(--t1);background:var(--mgp2);transition:all .2s}
+.ff input:focus{outline:none;border-color:var(--mg);background:var(--white)}
+.errmsg{background:var(--pkp);border:1px solid var(--pkp3);color:var(--pk2);border-radius:var(--rs);padding:9px 13px;font-size:12px;margin-bottom:14px}
+.btnlogin{width:100%;padding:14px;background:linear-gradient(135deg,var(--mg),var(--mg2));color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:18px;box-shadow:0 4px 16px rgba(90,122,74,.3);transition:opacity .2s}
+.btnlogin:hover{opacity:.9}
+.lfooter{text-align:center;font-size:11px;color:var(--t3)}
+
+/* ── SIDEBAR ── */
+.sb{position:fixed;left:0;top:0;bottom:0;width:248px;background:var(--white);border-right:1px solid var(--bd);display:flex;flex-direction:column;z-index:100;transition:transform .3s;box-shadow:2px 0 20px rgba(90,122,74,.06)}
+.sb-brand{padding:20px 18px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+.sb-logo{width:44px;height:44px;border-radius:12px;background:var(--mgp);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-logo svg{width:22px;height:22px}
+.sb-name{font-size:15px;font-weight:800;color:var(--mg2)}
+.sb-sub{font-size:11px;color:var(--t3)}
+.sb-sec{font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.8px;padding:13px 18px 4px}
+.nb{display:flex;align-items:center;gap:10px;width:100%;padding:10px 18px;background:transparent;border:none;cursor:pointer;color:var(--t2);font-size:13.5px;transition:all .15s;text-align:left;position:relative}
+.nb:hover{background:var(--mgp2);color:var(--mg2)}
+.nb.active{background:var(--mgp);color:var(--mg2);font-weight:600}
+.nb.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);height:56%;width:3px;background:var(--mg);border-radius:0 3px 3px 0}
+.nb svg{width:18px;height:18px;flex-shrink:0;opacity:.7}
+.nb.active svg{opacity:1}
+.sb-foot{margin-top:auto;padding:14px 18px;border-top:1px solid var(--bd)}
+.upill{background:var(--mgp2);border-radius:8px;padding:9px 11px;display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.upill-dot{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--mg),var(--mg2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.upill-name{font-size:12px;font-weight:600}
+.upill-role{font-size:10px;color:var(--t3)}
+.btnout{width:100%;padding:9px;background:var(--pkp);color:var(--pk2);border:1px solid var(--pkp3);border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.ham{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--white);border:1px solid var(--bd);border-radius:10px;width:42px;height:42px;cursor:pointer;align-items:center;justify-content:center;box-shadow:var(--sh1)}
+.ham svg{width:20px;height:20px}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99}
+.main{margin-left:248px;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 13px;background:var(--white);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50}
+.tb-title{font-size:19px;font-weight:800;color:var(--t1);letter-spacing:-.3px}
+.tb-date{font-size:12px;color:var(--t3);margin-top:2px}
+
+/* ── PAGES ── */
+.page{display:none;padding:20px 24px 48px}
+.page.active{display:block}
+
+/* ── CARD ── */
+.card{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:13px;box-shadow:var(--sh1)}
+.clbl{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+
+/* ── DATE HERO ── */
+.dhero{background:linear-gradient(135deg,var(--mg) 0%,var(--mg2) 100%);border-radius:var(--r);padding:20px 22px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;color:#fff;box-shadow:0 6px 24px rgba(90,122,74,.22)}
+.dhero-l{display:flex;align-items:center;gap:15px}
+.dhero-num{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px}
+.dhero-day{font-size:16px;font-weight:700}
+.dhero-full{font-size:12px;opacity:.7;margin-top:3px}
+.dhero-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:7px 15px;font-size:12px;font-weight:600}
+.dhero-badge.we{background:rgba(212,90,120,.25);border-color:rgba(212,90,120,.4)}
+
+/* ── KELAS GRID ── */
+.kg{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:9px}
+.kb{padding:14px 8px;background:var(--mgp2);border:1.5px solid var(--bd);border-radius:var(--r);cursor:pointer;text-align:center;transition:all .18s;position:relative}
+.kb:hover{border-color:var(--mg);transform:translateY(-2px);box-shadow:var(--sh2)}
+.kb.active{background:linear-gradient(135deg,var(--mg),var(--mg2));border-color:var(--mg2);color:#fff;box-shadow:0 6px 18px rgba(90,122,74,.28);transform:translateY(-2px)}
+.kb-done-tick{position:absolute;top:6px;right:8px;font-size:10px;background:var(--mgp3);color:var(--mg2);padding:1px 6px;border-radius:8px;font-weight:700}
+.kb.active .kb-done-tick{background:rgba(255,255,255,.25);color:#fff}
+.kb-id{font-size:18px;font-weight:800;letter-spacing:-.5px}
+.kb-nm{font-size:10px;opacity:.65;margin-top:2px;line-height:1.3}
+.kb-rmt{font-size:10px;margin-top:5px;background:rgba(192,72,104,.12);color:var(--pk2);padding:2px 7px;border-radius:8px;display:inline-block;font-weight:500}
+.kb.active .kb-rmt,.kb.active .kb-id,.kb.active .kb-nm{color:#fff}
+.kb.active .kb-rmt{background:rgba(255,255,255,.2)}
+
+/* ── STATS ── */
+.sr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-bottom:13px}
+.st{border-radius:12px;padding:13px 8px;text-align:center}
+.st-bl{background:linear-gradient(135deg,#e8f2fc,#d4e8f8);border:1px solid #c0d8f0}
+.st-gn{background:linear-gradient(135deg,var(--mgp),var(--mgp3));border:1px solid #b8d8a0}
+.st-pk{background:linear-gradient(135deg,var(--pkp),var(--pkp3));border:1px solid var(--pkp3)}
+.st-co{background:linear-gradient(135deg,var(--mgp2),var(--pkp2));border:1px solid var(--bd)}
+.sn{font-size:24px;font-weight:800;line-height:1}
+.st-bl .sn{color:var(--bl)}.st-gn .sn{color:var(--mg2)}.st-pk .sn{color:var(--pk2)}.st-co .sn{color:var(--mg2)}
+.sl{font-size:10px;color:var(--t3);margin-top:3px;font-weight:500}
+
+/* ── MURID LIST ── */
+.sbar{position:relative;margin-bottom:11px}
+.sbar input{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--bd);border-radius:10px;font-size:13px;background:var(--mgp2);color:var(--t1);transition:all .2s}
+.sbar input:focus{outline:none;border-color:var(--mg);background:var(--white)}
+.sbar-ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--t3)}
+.ml{display:flex;flex-direction:column;gap:5px;max-height:320px;overflow-y:auto;padding-right:2px}
+.mr{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cream);border:1.5px solid var(--bd);border-radius:10px;cursor:pointer;transition:all .15s;user-select:none}
+.mr:hover{border-color:var(--mg);background:var(--mgp2)}
+.mr.absen{background:var(--pkp);border-color:var(--pkp3)}
+.mav{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.av-g{background:var(--mgp);color:var(--mg2)}
+.av-p{background:var(--pkp);color:var(--pk2)}
+.mi{flex:1;min-width:0}
+.mn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mm{font-size:11px;color:var(--t3);margin-top:1px}
+.bdg{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;white-space:nowrap}
+.bdg-r{background:var(--pkp);color:var(--pk2);border:1px solid var(--pkp3)}
+.bdg-h{background:var(--mgp);color:var(--mg2);border:1px solid var(--mgp3)}
+.bdg-a{background:var(--pkp);color:var(--pk2);border:1px solid var(--pkp3)}
+.kib{display:inline-block;background:linear-gradient(135deg,var(--mg),var(--mg2));color:#fff;font-size:10px;padding:2px 8px;border-radius:8px;font-weight:700;margin-left:6px;vertical-align:middle;text-transform:none;letter-spacing:0}
+.abox{margin-top:12px;padding:12px;background:var(--pkp);border:1px solid var(--pkp3);border-radius:10px}
+.abox-t{font-size:11px;font-weight:700;color:var(--pk2);margin-bottom:7px}
+.cw{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11px;padding:3px 9px;border-radius:20px}
+.chip-r{background:var(--pkp2);color:var(--pk2);border:1px solid var(--pkp3)}
+.chip-rmt{background:#fce4ec;color:#880e4f;border:1px solid #f48fb1}
+.btn-hantar{width:100%;padding:13px;background:linear-gradient(135deg,var(--mg),var(--mg2));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;transition:all .2s;box-shadow:0 4px 14px rgba(90,122,74,.22)}
+.btn-hantar:hover{opacity:.92}
+.btn-hantar:disabled{background:#b0b8a8;box-shadow:none;cursor:not-allowed;opacity:1}
+.btn-update{width:100%;padding:13px;background:linear-gradient(135deg,#7a6a9a,#5a4a7a);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;transition:all .2s;box-shadow:0 4px 14px rgba(90,74,122,.22)}
+.btn-update:hover{opacity:.92}
+
+/* ── DASHBOARD ── */
+.din{width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:10px;font-size:14px;background:var(--mgp2);color:var(--t1)}
+.din:focus{outline:none;border-color:var(--mg)}
+.dbanner{background:linear-gradient(135deg,var(--mgp),var(--pkp2));border:1px solid var(--bd);border-radius:var(--r);padding:15px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.db-title{font-size:15px;font-weight:700}
+.db-sub{font-size:12px;color:var(--t2);margin-top:2px}
+.tag{font-size:11px;padding:5px 12px;border-radius:20px;font-weight:700}
+.tag-g{background:var(--mgp3);color:var(--mg2);border:1px solid #a0c870}
+.tag-a{background:#fff8e1;color:#e65100;border:1px solid #ffe082}
+.kd{background:var(--white);border:1.5px solid var(--bd);border-radius:var(--r);margin-bottom:9px;overflow:hidden;box-shadow:var(--sh1)}
+.kdh{display:flex;align-items:center;justify-content:space-between;padding:14px 17px;cursor:pointer;transition:background .15s}
+.kdh:hover{background:var(--cream)}
+.kdn{font-size:14px;font-weight:700}
+.kdd{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.kdpct{font-size:15px;font-weight:800}
+.pct-g{color:var(--mg2)}.pct-b{color:var(--bl)}.pct-r{color:var(--pk2)}
+.kdb{padding:15px 17px;border-top:1px solid var(--bd);display:none}
+.kdb.open{display:block}
+.bw{height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin:9px 0 14px}
+.bf{height:100%;border-radius:4px;transition:width .6s}
+.slbl{font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+/* PIE CHARTS */
+.pie-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:13px}
+.pie-card{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:16px;box-shadow:var(--sh1);text-align:center}
+.pie-title{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:4px}
+.pie-sub{font-size:11px;color:var(--t3);margin-bottom:12px}
+.pie-wrap{position:relative;width:140px;height:140px;margin:0 auto 12px}
+.pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.pie-center-num{font-size:22px;font-weight:800;color:var(--t1);line-height:1}
+.pie-center-lbl{font-size:9px;color:var(--t3);margin-top:2px}
+.pie-legend{display:flex;flex-direction:column;gap:5px;font-size:11px;text-align:left}
+.pie-leg-item{display:flex;align-items:center;gap:6px}
+.pie-leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── RMT PANEL ── */
+.rmthero{background:linear-gradient(135deg,var(--pk),var(--pk2));border-radius:var(--r);padding:18px;margin-bottom:13px;color:#fff;display:flex;align-items:center;gap:13px;box-shadow:0 6px 22px rgba(212,90,120,.22)}
+.rmthero svg{width:36px;height:36px;flex-shrink:0;opacity:.9}
+.rht{font-size:16px;font-weight:800}
+.rhs{font-size:12px;opacity:.75;margin-top:2px}
+.fscroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;margin-top:10px}
+.fb{flex-shrink:0;padding:6px 14px;border-radius:20px;border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fb.active{background:linear-gradient(135deg,var(--mg),var(--mg2));border-color:var(--mg2);color:#fff;box-shadow:0 3px 10px rgba(90,122,74,.22)}
+.rleg{display:flex;flex-wrap:wrap;gap:12px;padding:10px 14px;background:var(--white);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:13px;font-size:12px;color:var(--t2)}
+.li{display:flex;align-items:center;gap:5px}
+.lb{width:15px;height:15px;border-radius:4px}
+.lb-h{background:var(--mg)}.lb-a{background:var(--white);border:2px solid var(--pk)}.lb-w{background:#e8e4de}.lb-e{background:#f0eeea;border:1px dashed #ccc}
+.rtw{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:12px;box-shadow:var(--sh1)}
+.rtkh{background:linear-gradient(135deg,var(--mg2),var(--mg));color:#fff;padding:8px 14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+.rtkh svg{width:14px;height:14px}
+table.rt{border-collapse:collapse;font-size:11px;min-width:100%}
+table.rt th{background:#2a3a22;color:#fff;padding:6px 3px;text-align:center;font-weight:600;position:sticky;top:0;z-index:2;white-space:nowrap}
+table.rt th.cn{text-align:left;padding-left:10px;min-width:138px;position:sticky;left:0;z-index:3;background:#2a3a22}
+table.rt th.ck{background:var(--mg2);min-width:36px}
+table.rt td{padding:4px 3px;text-align:center;border-bottom:1px solid var(--bd);vertical-align:middle}
+table.rt td.cn{text-align:left;padding-left:10px;background:var(--white);position:sticky;left:0;z-index:1;border-right:1px solid var(--bd);max-width:155px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+table.rt tr:nth-child(even) td{background:var(--cream)}
+table.rt tr:nth-child(even) td.cn{background:var(--cream)}
+table.rt td.ck{font-size:10px;color:var(--t3);border-right:1px solid var(--bd)}
+.ch{width:17px;height:17px;background:linear-gradient(135deg,var(--mg),var(--mg2));border-radius:3px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.ca{width:17px;height:17px;background:var(--white);border:2px solid var(--pk);border-radius:3px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.ce{width:17px;height:17px;background:#f0eeea;border:1px dashed #ccc;border-radius:3px;margin:0 auto;opacity:.5}
+.cw2{width:17px;height:17px;background:#e8e4de;border-radius:3px;margin:0 auto;opacity:.6}
+.dn{font-size:10px;font-weight:700}.dl{font-size:8.5px;opacity:.65}
+
+/* ── ADMIN ── */
+.ahero{background:linear-gradient(135deg,#2a3a22,var(--mg2));border-radius:var(--r);padding:18px;margin-bottom:13px;color:#fff;display:flex;align-items:center;gap:13px;box-shadow:var(--sh2)}
+.ahero svg{width:34px;height:34px;flex-shrink:0;opacity:.9}
+.aht{font-size:16px;font-weight:800}
+.ahs{font-size:12px;opacity:.7;margin-top:2px}
+.atabs{display:flex;background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:4px;gap:3px;margin-bottom:13px;overflow-x:auto}
+.atab{flex-shrink:0;padding:8px 14px;border:none;background:transparent;border-radius:var(--rs);font-size:12.5px;font-weight:500;cursor:pointer;color:var(--t2);transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.atab:hover{background:var(--cream)}
+.atab.active{background:linear-gradient(135deg,var(--mg),var(--mg2));color:#fff}
+.atab svg{width:14px;height:14px}
+.ap{display:none}.ap.active{display:block}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.fi{width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:var(--rs);font-size:14px;background:var(--mgp2);color:var(--t1);transition:all .2s}
+.fi:focus{outline:none;border-color:var(--mg);background:var(--white)}
+.sel{width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:var(--rs);font-size:13px;background:var(--mgp2);color:var(--t1);cursor:pointer}
+.sel:focus{outline:none;border-color:var(--mg)}
+.ftxt{width:100%;padding:10px 14px;border:1.5px solid var(--bd);border-radius:var(--rs);font-size:13px;background:var(--mgp2);color:var(--t1);resize:vertical;font-family:monospace;line-height:1.5}
+.ftxt:focus{outline:none;border-color:var(--mg)}
+.r2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.trow{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--mgp2);border:1px solid var(--bd);border-radius:10px;margin-bottom:14px}
+.ts{position:relative;display:inline-block;width:44px;height:24px}
+.ts input{opacity:0;width:0;height:0}
+.tsl{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:24px;transition:.3s}
+.tsl:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.ts input:checked + .tsl{background:linear-gradient(135deg,var(--mg),var(--mg2))}
+.ts input:checked + .tsl:before{transform:translateX(20px)}
+.btn-g{width:100%;padding:12px;background:linear-gradient(135deg,var(--mg),var(--mg2));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 13px rgba(90,122,74,.22);transition:opacity .2s}
+.btn-g:hover{opacity:.92}
+.btn-r{padding:9px 20px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer}
+.btn-o{padding:9px 20px;background:var(--white);color:var(--t2);border:1.5px solid var(--bd);border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer}
+.btnexp{padding:10px 20px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 13px rgba(212,90,120,.22);transition:opacity .2s}
+.btnexp:hover{opacity:.92}
+/* ADMIN LIST */
+.admin-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.cb-all{width:16px;height:16px;cursor:pointer;accent-color:var(--mg);flex-shrink:0}
+.adel-sel-btn{padding:7px 14px;background:var(--pkp);color:var(--pk2);border:1px solid var(--pkp3);border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;display:none;align-items:center;gap:5px}
+.adel-sel-btn.show{display:flex}
+.adel-sel-btn svg{width:13px;height:13px}
+.amr{display:flex;align-items:center;gap:9px;padding:11px 12px;background:var(--cream);border:1px solid var(--bd);border-radius:10px;margin-bottom:5px;transition:all .15s}
+.amr:hover{border-color:var(--mg);background:var(--mgp2)}
+.amr.selected{background:var(--mgp);border-color:var(--mgp3)}
+.amr-cb{width:15px;height:15px;cursor:pointer;accent-color:var(--mg);flex-shrink:0}
+.amr-name{font-size:13px;font-weight:600}
+.amr-meta{font-size:11px;color:var(--t3);margin-top:1px}
+.ibtn{width:32px;height:32px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--white);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.ibtn:hover{background:var(--mgp2)}
+.ibtn-r:hover{background:var(--pkp);border-color:var(--pkp3)}
+.ibtn svg{width:14px;height:14px}
+.eg{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:11px}
+.ec{background:var(--cream);border:1.5px solid var(--bd);border-radius:var(--r);padding:18px 14px;text-align:center;cursor:pointer;transition:all .2s}
+.ec:hover{border-color:var(--mg);background:var(--mgp2);transform:translateY(-3px);box-shadow:var(--sh2)}
+.ec-ic{width:36px;height:36px;margin:0 auto 10px;background:var(--mgp);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.ec-ic svg{width:20px;height:20px}
+.ec-t{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:5px}
+.ec-d{font-size:11px;color:var(--t3);margin-bottom:10px;line-height:1.5}
+.ec-btn{font-size:11px;font-weight:700;color:var(--mg2);background:var(--mgp);padding:4px 12px;border-radius:20px;display:inline-block}
+
+/* ── MODALS ── */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.mc{background:var(--white);border-radius:20px;padding:24px;width:100%;max-width:450px;box-shadow:var(--sh3)}
+.mt{font-size:17px;font-weight:800;color:var(--t1);margin-bottom:18px}
+.mbtns{display:flex;gap:9px;justify-content:flex-end;margin-top:20px}
+
+/* ── MISC ── */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(8px);background:linear-gradient(135deg,#2a3a22,var(--mg2));color:#fff;padding:12px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;box-shadow:var(--sh3)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.lov{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px}
+.spin{width:42px;height:42px;border:3px solid var(--bd);border-top-color:var(--mg);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px 20px;color:var(--t3)}
+.empty svg{width:40px;height:40px;margin-bottom:12px;opacity:.4}
+.empty-t{font-size:14px}
+.sesi-btn-active-pagi{background:var(--mg)!important;color:#fff!important;border-color:var(--mg2)!important}
+.sesi-btn-active-petang{background:var(--pk)!important;color:#fff!important;border-color:var(--pk2)!important}
+.sesi-btn-inactive{background:var(--white)!important;color:var(--t2)!important;border-color:var(--bd)!important}
+.pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.pie-center-num{font-size:22px;font-weight:800;color:var(--t1);line-height:1}
+.pie-center-lbl{font-size:9px;color:var(--t3);margin-top:2px}
+.ibox2{border-radius:10px;padding:11px 14px;font-size:12px;line-height:1.6;margin-bottom:15px}
+.ibox2.g{background:var(--mgp);border:1px solid var(--mgp3);color:var(--mg3)}
+code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-radius:4px;font-size:11.5px}
+.res-ok{background:var(--mgp);border:1px solid var(--mgp3);border-radius:var(--rs);padding:12px 15px;font-size:13px;color:var(--mg2);margin-top:11px}
+.res-err{background:var(--pkp);border:1px solid var(--pkp3);border-radius:var(--rs);padding:12px 15px;font-size:13px;color:var(--pk2);margin-top:11px}
+.rdh{font-size:12px;font-weight:700;color:var(--t3);padding:9px 0 4px;border-top:1px solid var(--bd);margin-top:9px}
+.rdh:first-child{border-top:none;margin-top:0}
+.ri{padding:10px 0;border-bottom:1px solid var(--bd)}
+.ri:last-child{border-bottom:none}
+@media(max-width:768px){
+.sb{transform:translateX(-100%)}
+.sb.open{transform:none}
+.ov.show{display:block}
+.ham{display:flex}
+.main{margin-left:0}
+.page{padding:15px 15px 44px}
+.topbar{padding:13px 15px 10px 62px}
+.sr{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kg{grid-template-columns:repeat(2,minmax(0,1fr))}
+.eg{grid-template-columns:1fr}
+.r2{grid-template-columns:1fr}
+.pie-row{grid-template-columns:1fr}
+.dhero-num{font-size:40px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="LS" class="ls">
+<div class="lc">
+  <div class="l-icon-row">
+    <div class="l-icon g"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+    <div class="l-icon p"><svg viewBox="0 0 24 24" fill="none" stroke="#c04868" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+  </div>
+  <div class="l-title"><h1>Sistem Kehadiran</h1><p>SK Felda Inas — Murid &amp; RMT</p></div>
+  <div class="ltabs">
+    <button class="ltab active" onclick="swMode('guru',this)">Guru</button>
+    <button class="ltab" onclick="swMode('admin',this)">Admin</button>
+  </div>
+  <div id="iGuru" class="ibox g"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Log masuk sebagai guru untuk mengisi kehadiran harian murid kelas anda.</span></div>
+  <div id="iAdmin" class="ibox p" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Panel admin memerlukan kata laluan khas untuk akses penuh.</span></div>
+  <div id="passW" style="display:none"><div class="ff"><label>Kata Laluan Admin</label><input type="password" id="ap" placeholder="Masukkan kata laluan..." onkeydown="if(event.key==='Enter')doLogin()"></div><div id="lerr" class="errmsg" style="display:none">Kata laluan salah. Sila cuba lagi.</div></div>
+  <button class="btnlogin" onclick="doLogin()"><span id="lbtxt">Masuk sebagai Guru</span></button>
+  <div class="lfooter">Sistem Kehadiran Murid &amp; RMT v2.0 &nbsp;·&nbsp; SK Felda Inas</div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="APP" style="display:none">
+<nav class="sb" id="SB">
+  <div class="sb-brand">
+    <div class="sb-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+    <div><div class="sb-name">SK Felda Inas</div><div class="sb-sub">Sistem Kehadiran v2.0</div></div>
+  </div>
+  <div class="sb-sec">UTAMA</div>
+  <button class="nb active" onclick="showPg('kehadiran',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>Isi Kehadiran</button>
+  <button class="nb" onclick="showPg('dashboard',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+  <button class="nb" onclick="showPg('panel-rmt',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>Panel RMT</button>
+  <button class="nb" onclick="showPg('rekod',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Rekod</button>
+  <div id="aNv" style="display:none">
+    <div class="sb-sec">ADMIN</div>
+    <button class="nb" onclick="showPg('admin',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Panel Admin</button>
+  </div>
+  <div class="sb-foot">
+    <div class="upill"><div class="upill-dot" id="uDot">G</div><div><div class="upill-name" id="uName">Guru</div><div class="upill-role" id="uRole">Pengguna Biasa</div></div></div>
+    <button class="btnout" onclick="logout()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Keluar</button>
+  </div>
+</nav>
+<button class="ham" id="hBtn" onclick="tgSB()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+<div class="ov" id="OV" onclick="tgSB()"></div>
+
+<main class="main">
+<div class="topbar"><div><div class="tb-title" id="pgT">Isi Kehadiran</div><div class="tb-date" id="tbD"></div></div></div>
+
+<!-- KEHADIRAN -->
+<div class="page active" id="page-kehadiran">
+  <div class="dhero">
+    <div class="dhero-l"><div class="dhero-num" id="dN"></div><div><div class="dhero-day" id="dDy"></div><div class="dhero-full" id="dFl"></div></div></div>
+    <div class="dhero-badge" id="dBdg">Hari Persekolahan</div>
+  </div>
+  <div class="card"><div class="clbl">Pilih Kelas</div><div class="kg" id="KG"></div></div>
+  <div id="seksyen" style="display:none">
+    <div class="sr">
+      <div class="st st-bl"><div class="sn" id="sJ">0</div><div class="sl">Jumlah</div></div>
+      <div class="st st-gn"><div class="sn" id="sH">0</div><div class="sl">Hadir</div></div>
+      <div class="st st-pk"><div class="sn" id="sA">0</div><div class="sl">Tidak Hadir</div></div>
+      <div class="st st-co"><div class="sn" id="sR">0</div><div class="sl">RMT Hadir</div></div>
+    </div>
+    <div class="card">
+      <div class="clbl">Senarai Murid <span class="kib" id="kBdg"></span></div>
+      <div class="sbar"><svg class="sbar-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari nama murid..." id="cI" oninput="filMurid()"></div>
+      <div class="ml" id="mL"></div>
+      <div class="abox" id="aBox" style="display:none"><div class="abox-t">Tidak hadir hari ini:</div><div class="cw" id="aC"></div></div>
+      <button class="btn-hantar" id="btnHantar" onclick="hantarK()">Hantar Kehadiran</button>
+      <button class="btn-update" id="btnUpdate" style="display:none" onclick="updateK()">Kemaskini Laporan Hari Ini</button>
+    </div>
+  </div>
+  <div id="emptyK" class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg><div class="empty-t">Pilih kelas untuk mula mengisi kehadiran</div></div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="card"><div class="clbl">Pilih Tarikh</div><input type="date" class="din" id="dDate" onchange="renderDash()"></div>
+  <div id="dCont"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="empty-t">Pilih tarikh untuk lihat dashboard</div></div></div>
+</div>
+
+<!-- PANEL RMT -->
+<div class="page" id="page-panel-rmt">
+  <div class="rmthero"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg><div><div class="rht">Rekod Kehadiran Murid RMT</div><div class="rhs">Panel paparan automatik — hanya baca sahaja</div></div></div>
+  <div class="card">
+    <div class="clbl">Pilih Bulan &amp; Tahun</div>
+    <div class="r2">
+      <select class="sel" id="rB" onchange="renderRMT()"><option value="0">Januari</option><option value="1">Februari</option><option value="2">Mac</option><option value="3">April</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Julai</option><option value="7">Ogos</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Disember</option></select>
+      <select class="sel" id="rY" onchange="renderRMT()"></select>
+    </div>
+    <div class="fscroll" id="rF"></div>
+  </div>
+  <div class="rleg"><span class="li"><span class="lb lb-h"></span>Hadir</span><span class="li"><span class="lb lb-a"></span>Tidak Hadir</span><span class="li"><span class="lb lb-w"></span>Hujung Minggu</span><span class="li"><span class="lb lb-e"></span>Tiada Data</span></div>
+  <div class="sr" id="rSt"></div>
+  <div id="rA"></div>
+  <button class="btnexp" onclick="expRMT()" style="margin-top:4px">Export RMT ke Excel</button>
+</div>
+
+<!-- REKOD -->
+<div class="page" id="page-rekod">
+  <div class="card"><div class="clbl">Rekod Kehadiran Harian</div><div id="rekL"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Tiada rekod lagi</div></div></div></div>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+  <div class="ahero"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><div><div class="aht">Panel Admin</div><div class="ahs">Urus murid, data kelas dan export laporan</div></div></div>
+  <div class="atabs">
+    <button class="atab active" onclick="aTab('senarai',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Senarai Murid</button>
+    <button class="atab" onclick="aTab('tambah',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Tambah Murid</button>
+    <button class="atab" onclick="aTab('pukal',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import Pukal</button>
+    <button class="atab" onclick="aTab('export',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+    <button class="atab" onclick="aTab('sesi',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Tetapan Sesi</button>
+    <button class="atab" onclick="aTab('kelas',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Urus Kelas</button>
+  </div>
+  <div class="ap active" id="ap-senarai">
+    <div class="card">
+      <div class="r2" style="margin-bottom:10px">
+        <select class="sel" id="aKF" onchange="loadAL()"><option value="">Semua Kelas</option><option value="1A">Tahun 1 Arif</option><option value="2B">Tahun 2 Bestari</option><option value="3C">Tahun 3 Cemerlang</option><option value="4D">Tahun 4 Dinamik</option><option value="5E">Tahun 5 Emas</option></select>
+        <input type="text" class="fi" placeholder="Cari nama..." id="aCr" oninput="loadAL()">
+      </div>
+      <div class="admin-toolbar">
+        <input type="checkbox" class="cb-all" id="cbAll" onchange="togSelAll(this)">
+        <label for="cbAll" style="font-size:12px;color:var(--t2);cursor:pointer">Pilih Semua</label>
+        <button class="adel-sel-btn" id="delSelBtn" onclick="delSelected()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span id="delSelTxt">Padam Terpilih</span></button>
+      </div>
+      <div id="aL"></div>
+    </div>
+  </div>
+  <div class="ap" id="ap-tambah">
+    <div class="card">
+      <div class="clbl">Maklumat Murid Baru</div>
+      <div class="fg"><label>Nama Penuh</label><input type="text" class="fi" id="tNm" placeholder="Contoh: Ahmad bin Abu Bakar"></div>
+      <div class="r2">
+        <div class="fg"><label>Kelas</label><select class="sel" id="tKl"><option value="1A">Tahun 1 Arif</option><option value="2B">Tahun 2 Bestari</option><option value="3C">Tahun 3 Cemerlang</option><option value="4D">Tahun 4 Dinamik</option><option value="5E">Tahun 5 Emas</option></select></div>
+        <div class="fg"><label>Jantina</label><select class="sel" id="tJt"><option value="L">Lelaki (L)</option><option value="P">Perempuan (P)</option></select></div>
+      </div>
+      <div class="trow"><div><div style="font-weight:600;font-size:13px">Status RMT</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Tandakan jika murid ini penerima RMT</div></div><label class="ts"><input type="checkbox" id="tRmt"><span class="tsl"></span></label></div>
+      <button class="btn-g" onclick="addMurid()">Tambah Murid</button>
+    </div>
+  </div>
+  <div class="ap" id="ap-pukal">
+    <div class="card">
+      <div class="clbl">Import Murid Secara Pukal</div>
+      <div class="ibox2 g"><strong>Format setiap baris:</strong> <code>NAMA,KELAS,JANTINA,RMT</code><br>Contoh: <code>Ahmad bin Ali,1A,L,ya</code> atau <code>Siti binti Hassan,2B,P,tidak</code></div>
+      <div class="fg"><label>Tetapkan Kelas (optional)</label><select class="sel" id="pKl"><option value="">Ikut data dalam teks</option><option value="1A">Tahun 1 Arif</option><option value="2B">Tahun 2 Bestari</option><option value="3C">Tahun 3 Cemerlang</option><option value="4D">Tahun 4 Dinamik</option><option value="5E">Tahun 5 Emas</option></select></div>
+      <div class="fg"><label>Data Murid</label><textarea class="ftxt" id="pDat" rows="9" placeholder="Ahmad bin Abu,1A,L,ya&#10;Siti binti Ali,1A,P,tidak&#10;Muhammad bin Hassan,2B,L,ya"></textarea></div>
+      <button class="btn-g" onclick="impPukal()">Import Sekarang</button>
+      <div id="pRes"></div>
+    </div>
+  </div>
+  <div class="ap" id="ap-sesi">
+    <div class="card">
+      <div class="clbl">Tetapan Sesi Kelas — Carta Pai Dashboard</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:16px;padding:11px 14px;background:var(--mgp2);border-radius:var(--rs);border:1px solid var(--mgp3);line-height:1.6">Tetapkan setiap kelas ke dalam <strong>Sesi Pagi</strong> atau <strong>Sesi Petang</strong>. Tetapan ini akan menentukan kelas mana yang dipaparkan dalam setiap carta pai pada dashboard. Bilangan murid dalam carta akan dikira berdasarkan jumlah murid <em>terdaftar</em> dalam kelas tersebut.</div>
+      <div id="sesiCfgList"></div>
+      <button class="btn-g" style="margin-top:14px" onclick="saveSesiCfg()">Simpan Tetapan Sesi</button>
+      <div id="sesiRes"></div>
+    </div>
+    <div class="card">
+      <div class="clbl">Ringkasan Semasa</div>
+      <div id="sesiSummary"></div>
+    </div>
+  </div>
+  <div class="ap" id="ap-kelas">
+    <div class="card">
+      <div class="clbl">Senarai Kelas</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:14px;padding:10px 13px;background:var(--pkp2);border:1px solid var(--pkp3);border-radius:var(--rs);line-height:1.6">
+        <strong>Perhatian:</strong> Memadam kelas akan mengalihkan murid yang ada dalam kelas tersebut — pastikan tiada murid dalam kelas sebelum dipadam. ID kelas tidak boleh ditukar selepas dicipta.
+      </div>
+      <div id="kelasAdminList"></div>
+    </div>
+    <div class="card">
+      <div class="clbl">Tambah Kelas Baru</div>
+      <div class="r2">
+        <div class="fg"><label>ID Kelas <span style="font-size:10px;color:var(--t3)">(contoh: 6A, 1B)</span></label><input type="text" class="fi" id="nKlId" placeholder="6A" maxlength="4" style="text-transform:uppercase"></div>
+        <div class="fg"><label>Nama Pendek</label><input type="text" class="fi" id="nKlNama" placeholder="Thn 6 Arif"></div>
+      </div>
+      <div class="fg"><label>Nama Penuh</label><input type="text" class="fi" id="nKlPanjang" placeholder="Tahun 6 Arif"></div>
+      <div class="fg"><label>Sesi</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button id="nKlSesiPagi" onclick="setNKlSesi('pagi')" style="flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s">Sesi Pagi</button>
+          <button id="nKlSesiPetang" onclick="setNKlSesi('petang')" style="flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--pk);background:var(--pkp);color:var(--pk2);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">Sesi Petang</button>
+        </div>
+      </div>
+      <input type="hidden" id="nKlSesiVal" value="petang">
+      <button class="btn-g" onclick="tambahKelas()">Tambah Kelas</button>
+      <div id="nKlRes"></div>
+    </div>
+  </div>
+  <div class="ap" id="ap-export">
+    <div class="card">
+      <div class="clbl">Export Data</div>
+      <div class="eg">
+        <div class="ec" onclick="expMuridKelas()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="ec-t">Senarai Murid Ikut Kelas</div><div class="ec-d">Semua nama murid mengikut kelas dalam Excel</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expRMT()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="ec-t">Data Murid RMT</div><div class="ec-d">Senarai lengkap murid RMT beserta kelas</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expRekod()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="ec-t">Rekod Kehadiran</div><div class="ec-d">Semua rekod kehadiran harian dalam Excel</div><div class="ec-btn">Export Excel</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</main>
+</div>
+
+<!-- MODAL EDIT -->
+<div class="mov" id="eModal" style="display:none" onclick="closeE()"><div class="mc" onclick="event.stopPropagation()">
+  <div class="mt">Edit Maklumat Murid</div>
+  <input type="hidden" id="eId">
+  <div class="fg"><label>Nama Penuh</label><input type="text" class="fi" id="eNm"></div>
+  <div class="r2"><div class="fg"><label>Kelas</label><select class="sel" id="eKl"><option value="1A">Tahun 1 Arif</option><option value="2B">Tahun 2 Bestari</option><option value="3C">Tahun 3 Cemerlang</option><option value="4D">Tahun 4 Dinamik</option><option value="5E">Tahun 5 Emas</option></select></div><div class="fg"><label>Jantina</label><select class="sel" id="eJt"><option value="L">Lelaki (L)</option><option value="P">Perempuan (P)</option></select></div></div>
+  <div class="trow"><div><div style="font-weight:600;font-size:13px">Status RMT</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Togol status RMT murid</div></div><label class="ts"><input type="checkbox" id="eRmt"><span class="tsl"></span></label></div>
+  <div class="mbtns"><button class="btn-o" onclick="closeE()">Batal</button><button class="btn-g" style="width:auto;padding:10px 22px" onclick="saveE()">Simpan</button></div>
+</div></div>
+
+<!-- MODAL DELETE -->
+<div class="mov" id="dModal" style="display:none" onclick="closeD()"><div class="mc" onclick="event.stopPropagation()">
+  <div class="mt" style="color:var(--pk2)">Padam Murid</div>
+  <p style="color:var(--t2);line-height:1.6" id="dTxt">Anda pasti mahu memadam murid ini?</p>
+  <div class="mbtns"><button class="btn-o" onclick="closeD()">Batal</button><button class="btn-r" onclick="confD()">Ya, Padam</button></div>
+</div></div>
+
+<!-- MODAL DELETE SELECTED -->
+<div class="mov" id="dsModal" style="display:none" onclick="document.getElementById('dsModal').style.display='none'"><div class="mc" onclick="event.stopPropagation()">
+  <div class="mt" style="color:var(--pk2)">Padam Murid Terpilih</div>
+  <p style="color:var(--t2);line-height:1.6" id="dsTxt"></p>
+  <div class="mbtns"><button class="btn-o" onclick="document.getElementById('dsModal').style.display='none'">Batal</button><button class="btn-r" onclick="confDelSel()">Ya, Padam Semua</button></div>
+</div></div>
+
+<!-- MODAL EDIT KELAS -->
+<div class="mov" id="ekModal" style="display:none" onclick="closeEK()"><div class="mc" onclick="event.stopPropagation()">
+  <div class="mt">Edit Kelas</div>
+  <input type="hidden" id="ekId">
+  <div class="fg"><label>ID Kelas <span style="font-size:10px;color:var(--t3)">(tidak boleh ditukar)</span></label><input type="text" class="fi" id="ekIdDisp" disabled style="opacity:.5;cursor:not-allowed"></div>
+  <div class="fg"><label>Nama Pendek</label><input type="text" class="fi" id="ekNama" placeholder="Thn 1 Arif"></div>
+  <div class="fg"><label>Nama Penuh</label><input type="text" class="fi" id="ekPanjang" placeholder="Tahun 1 Arif"></div>
+  <div class="fg"><label>Sesi</label>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button id="ekSesiPagi" onclick="setEKSesi('pagi')" style="flex:1;padding:10px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1.5px solid var(--bd);background:var(--cream);color:var(--t2)">Sesi Pagi</button>
+      <button id="ekSesiPetang" onclick="setEKSesi('petang')" style="flex:1;padding:10px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1.5px solid var(--bd);background:var(--cream);color:var(--t2)">Sesi Petang</button>
+    </div>
+  </div>
+  <input type="hidden" id="ekSesiVal" value="petang">
+  <div class="mbtns"><button class="btn-o" onclick="closeEK()">Batal</button><button class="btn-g" style="width:auto;padding:10px 22px" onclick="saveEK()">Simpan</button></div>
+</div></div>
+
+<!-- MODAL DELETE KELAS -->
+<div class="mov" id="dkModal" style="display:none" onclick="closeDK()"><div class="mc" onclick="event.stopPropagation()">
+  <div class="mt" style="color:var(--pk2)">Padam Kelas</div>
+  <p style="color:var(--t2);line-height:1.6" id="dkTxt"></p>
+  <div id="dkWarn" style="margin-top:10px;padding:10px 13px;background:var(--pkp);border:1px solid var(--pkp3);border-radius:var(--rs);font-size:12px;color:var(--pk2);display:none"></div>
+  <div class="mbtns"><button class="btn-o" onclick="closeDK()">Batal</button><button class="btn-r" id="dkConfBtn" onclick="confDK()">Ya, Padam</button></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<div class="lov" id="LOV" style="display:none"><div class="spin"></div><div style="font-size:13px;color:var(--t2);font-weight:500">Memuatkan...</div></div>
+
+<script>
+const SB_URL='https://YOUR_PROJECT.supabase.co';
+const SB_KEY='YOUR_ANON_KEY';
+let sb=null;
+try{if(window.supabase)sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
+
+const ADMIN_PASS='jba8020';
+const HARI=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
+const HARI_S=['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'];
+const BULAN=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+// Kelas config — boleh diubah oleh admin (tambah, edit, padam)
+const KELAS_ASAL=[
+  {id:'1A',nama:'Thn 1 Arif',panjang:'Tahun 1 Arif'},
+  {id:'2B',nama:'Thn 2 Bestari',panjang:'Tahun 2 Bestari'},
+  {id:'3C',nama:'Thn 3 Cemerlang',panjang:'Tahun 3 Cemerlang'},
+  {id:'4D',nama:'Thn 4 Dinamik',panjang:'Tahun 4 Dinamik'},
+  {id:'5E',nama:'Thn 5 Emas',panjang:'Tahun 5 Emas'},
+];
+let KELAS_DEFAULT=[];
+function loadKelasConfig(){try{const k=localStorage.getItem('kelasCfg');KELAS_DEFAULT=k?JSON.parse(k):[...KELAS_ASAL]}catch(e){KELAS_DEFAULT=[...KELAS_ASAL]}}
+function saveKelasConfig(){localStorage.setItem('kelasCfg',JSON.stringify(KELAS_DEFAULT))}
+// Default sesi: 1A,2B,3C = petang; 4D,5E = pagi
+const SESI_DEFAULT={'1A':'petang','2B':'petang','3C':'petang','4D':'pagi','5E':'pagi'};
+let sesiConfig={};
+function loadSesiConfig(){try{const s=localStorage.getItem('sesiCfg');sesiConfig=s?JSON.parse(s):{...SESI_DEFAULT}}catch(e){sesiConfig={...SESI_DEFAULT}}}
+function saveSesiConfig(){localStorage.setItem('sesiCfg',JSON.stringify(sesiConfig))}
+function getKelas(){return KELAS_DEFAULT.map(k=>({...k,sesi:sesiConfig[k.id]||'petang'}))}
+let KELAS=[];
+let role=null,murid=[],kelasAktif='',absen=new Set(),cache={},delId=null,delIds=[],rmtFilt='semua';
+const g=id=>document.getElementById(id);
+function isoToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function fmtLong(s){const d=new Date(s+'T00:00:00');return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function isSchoolDay(d){const day=new Date(d+'T00:00:00').getDay();return day>=1&&day<=5}
+
+/* CLOCK */
+function tick(){
+  const d=new Date(),dy=HARI[d.getDay()],tgl=d.getDate(),bln=BULAN[d.getMonth()],thn=d.getFullYear();
+  const isWE=d.getDay()===0||d.getDay()===6;
+  g('dN')&&(g('dN').textContent=tgl);g('dDy')&&(g('dDy').textContent=dy);
+  g('dFl')&&(g('dFl').textContent=`${bln} ${thn}`);
+  g('tbD')&&(g('tbD').textContent=`${dy}, ${tgl} ${bln} ${thn}`);
+  if(g('dBdg')){g('dBdg').textContent=isWE?'Cuti':'Hari Persekolahan';g('dBdg').className='dhero-badge'+(isWE?' we':'');}
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  tick();setInterval(tick,30000);
+  loadCache();loadKelasConfig();loadSesiConfig();KELAS=getKelas();rebuildKelasSelects();
+  const now=new Date();
+  const rb=g('rB'),ry=g('rY');
+  if(rb&&ry){rb.value=now.getMonth();ry.innerHTML='';for(let y=now.getFullYear()-1;y<=now.getFullYear()+1;y++){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===now.getFullYear())o.selected=true;ry.appendChild(o)}}
+  if(g('dDate'))g('dDate').value=isoToday();
+});
+function loadCache(){try{const r=localStorage.getItem('kh');if(r)cache=JSON.parse(r)}catch(e){cache={}}}
+function saveCache(){localStorage.setItem('kh',JSON.stringify(cache))}
+function refreshKelas(){loadKelasConfig();loadSesiConfig();KELAS=getKelas();rebuildKelasSelects();buildKelas()}
+
+// Rebuild all kelas dropdowns dynamically
+function rebuildKelasSelects(){
+  const opts=KELAS_DEFAULT.map(k=>`<option value="${k.id}">${k.panjang}</option>`).join('');
+  const optAll=`<option value="">Semua Kelas</option>`+opts;
+  ['tKl','eKl','pKl','aKF'].forEach(id=>{
+    const el=g(id);if(!el)return;
+    const prev=el.value;
+    el.innerHTML=id==='aKF'?optAll:opts;
+    if(prev&&[...el.options].find(o=>o.value===prev))el.value=prev;
+  });
+}
+
+/* LOGIN */
+let lMode='guru';
+function swMode(m,btn){
+  lMode=m;document.querySelectorAll('.ltab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');
+  g('iGuru').style.display=m==='guru'?'flex':'none';g('iAdmin').style.display=m==='admin'?'flex':'none';
+  g('passW').style.display=m==='admin'?'block':'none';g('lbtxt').textContent=m==='guru'?'Masuk sebagai Guru':'Masuk sebagai Admin';
+  g('lerr').style.display='none';
+}
+function doLogin(){lMode==='guru'?enterApp('guru'):g('ap').value===ADMIN_PASS?enterApp('admin'):(g('lerr').style.display='block')}
+async function enterApp(r){
+  role=r;g('LS').style.display='none';g('APP').style.display='block';
+  if(r==='admin'){g('aNv').style.display='block';g('uDot').textContent='A';g('uName').textContent='Admin';g('uRole').textContent='Akses Penuh'}
+  else{g('uDot').textContent='G';g('uName').textContent='Guru';g('uRole').textContent='Akses Terhad'}
+  g('LOV').style.display='flex';
+  await loadMurid();
+  g('LOV').style.display='none';
+  buildKelas();tick();
+}
+function logout(){role=null;g('APP').style.display='none';g('LS').style.display='flex';g('ap').value='';g('lerr').style.display='none';lMode='guru';document.querySelectorAll('.ltab').forEach((t,i)=>t.classList.toggle('active',i===0));g('iGuru').style.display='flex';g('iAdmin').style.display='none';g('passW').style.display='none';g('lbtxt').textContent='Masuk sebagai Guru'}
+
+/* DATA */
+async function loadMurid(){
+  if(sb&&!SB_URL.includes('YOUR')){try{const{data,error}=await sb.from('murid').select('*').order('kelas').order('nama');if(!error&&data){murid=data;return}}catch(e){}}
+  murid=demoMurid();
+}
+function demoMurid(){return[
+  {id:1,nama:'Ahmad Hakimi bin Razali',kelas:'1A',jantina:'L',rmt:true},{id:2,nama:'Nurul Ain binti Hassan',kelas:'1A',jantina:'P',rmt:false},
+  {id:3,nama:'Muhammad Faris bin Azmi',kelas:'1A',jantina:'L',rmt:true},{id:4,nama:'Siti Aisyah binti Malik',kelas:'1A',jantina:'P',rmt:false},
+  {id:5,nama:'Haziq bin Othman',kelas:'1A',jantina:'L',rmt:true},{id:6,nama:'Nur Batrisyia binti Zaki',kelas:'1A',jantina:'P',rmt:false},
+  {id:7,nama:'Adam Irfan bin Yusof',kelas:'1A',jantina:'L',rmt:true},{id:8,nama:'Laila Khairunnisa binti Ramli',kelas:'1A',jantina:'P',rmt:false},
+  {id:9,nama:'Irfan Danial bin Sulaiman',kelas:'2B',jantina:'L',rmt:true},{id:10,nama:'Maisarah binti Kamal',kelas:'2B',jantina:'P',rmt:false},
+  {id:11,nama:'Zulhilmi bin Razak',kelas:'2B',jantina:'L',rmt:true},{id:12,nama:'Nur Fatimah binti Amin',kelas:'2B',jantina:'P',rmt:true},
+  {id:13,nama:'Afiq Izzat bin Salleh',kelas:'2B',jantina:'L',rmt:false},{id:14,nama:'Hanis Syazwani binti Haron',kelas:'2B',jantina:'P',rmt:false},
+  {id:15,nama:'Ikmal Hazwan bin Ishak',kelas:'2B',jantina:'L',rmt:true},{id:16,nama:'Aina Nabilah binti Jamil',kelas:'3C',jantina:'P',rmt:false},
+  {id:17,nama:'Haqimi bin Bakar',kelas:'3C',jantina:'L',rmt:true},{id:18,nama:'Nurul Izzah binti Majid',kelas:'3C',jantina:'P',rmt:true},
+  {id:19,nama:'Hazwan Hafifi bin Ghani',kelas:'3C',jantina:'L',rmt:false},{id:20,nama:'Syafiqah binti Nordin',kelas:'3C',jantina:'P',rmt:true},
+  {id:21,nama:'Amzar bin Zulkifli',kelas:'3C',jantina:'L',rmt:false},{id:22,nama:'Darwisyah binti Fauzi',kelas:'4D',jantina:'P',rmt:true},
+  {id:23,nama:'Izzul Aiman bin Said',kelas:'4D',jantina:'L',rmt:false},{id:24,nama:'Nurfarhana binti Idris',kelas:'4D',jantina:'P',rmt:true},
+  {id:25,nama:'Rusyaidi bin Hamid',kelas:'4D',jantina:'L',rmt:false},{id:26,nama:'Syuhada binti Omar',kelas:'4D',jantina:'P',rmt:true},
+  {id:27,nama:'Hafiz Asyraf bin Nawi',kelas:'4D',jantina:'L',rmt:false},{id:28,nama:'Nur Syazwani binti Daud',kelas:'4D',jantina:'P',rmt:true},
+  {id:29,nama:'Izzuddin bin Roslan',kelas:'5E',jantina:'L',rmt:true},{id:30,nama:'Amirah Husna binti Zaidi',kelas:'5E',jantina:'P',rmt:false},
+  {id:31,nama:'Qayyum Hakim bin Latif',kelas:'5E',jantina:'L',rmt:true},{id:32,nama:'Alia Farhana binti Noh',kelas:'5E',jantina:'P',rmt:true},
+  {id:33,nama:'Muhaimin bin Sapuan',kelas:'5E',jantina:'L',rmt:false},{id:34,nama:'Nur Khadeeja binti Aziz',kelas:'5E',jantina:'P',rmt:true},
+  {id:35,nama:'Farhan bin Shamsuddin',kelas:'5E',jantina:'L',rmt:false},
+]}
+
+/* NAV */
+const pgTitles={kehadiran:'Isi Kehadiran',dashboard:'Dashboard','panel-rmt':'Panel RMT',rekod:'Rekod Kehadiran',admin:'Panel Admin'};
+function showPg(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  g('page-'+id).classList.add('active');if(btn)btn.classList.add('active');
+  g('pgT').textContent=pgTitles[id]||id;
+  if(id==='dashboard')renderDash();
+  if(id==='panel-rmt')renderRMT();
+  if(id==='rekod')renderRekod();
+  if(id==='admin')loadAL();
+  closeSB();
+}
+function tgSB(){g('SB').classList.toggle('open');g('OV').classList.toggle('show')}
+function closeSB(){g('SB').classList.remove('open');g('OV').classList.remove('show')}
+
+/* KELAS GRID */
+function buildKelas(){
+  const grid=g('KG');grid.innerHTML='';const today=isoToday();
+  KELAS.forEach(k=>{
+    const mk=murid.filter(m=>m.kelas===k.id),rmt=mk.filter(m=>m.rmt).length;
+    const done=!!(cache[today]&&cache[today][k.id]);
+    const b=document.createElement('button');b.className='kb'+(done?' done':'');b.dataset.k=k.id;b.onclick=()=>pilihK(k.id,b);
+    b.innerHTML=`${done?`<span class="kb-done-tick">Selesai</span>`:''}<div class="kb-id">${k.id}</div><div class="kb-nm">${k.panjang}</div>${rmt?`<div class="kb-rmt">${rmt} RMT</div>`:''}`;
+    grid.appendChild(b);
+  });
+}
+function pilihK(kid,btn){
+  kelasAktif=kid;absen=new Set();
+  document.querySelectorAll('.kb').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');
+  g('kBdg').textContent=kid;g('seksyen').style.display='block';g('emptyK').style.display='none';
+  renderMurid();updateHantarBtn();
+}
+function renderMurid(){
+  const cari=(g('cI').value||'').toLowerCase();
+  const mk=murid.filter(m=>m.kelas===kelasAktif&&m.nama.toLowerCase().includes(cari));
+  const total=murid.filter(m=>m.kelas===kelasAktif).length;
+  const rmtJ=murid.filter(m=>m.kelas===kelasAktif&&m.rmt).length;
+  const rmtA=murid.filter(m=>m.kelas===kelasAktif&&m.rmt&&absen.has(m.id)).length;
+  g('sJ').textContent=total;g('sH').textContent=total-absen.size;g('sA').textContent=absen.size;g('sR').textContent=rmtJ-rmtA;
+  const list=g('mL');list.innerHTML='';
+  mk.forEach(m=>{
+    const isA=absen.has(m.id);const row=document.createElement('div');
+    row.className='mr'+(isA?' absen':'');row.onclick=()=>togol(m);
+    const ini=m.nama.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    row.innerHTML=`<div class="mav ${m.rmt?'av-g':'av-p'}">${ini}</div>
+      <div class="mi"><div class="mn">${m.nama}</div><div class="mm">${m.kelas} · ${m.jantina==='L'?'Lelaki':'Perempuan'}${m.rmt?' · RMT':''}</div></div>
+      ${m.rmt?'<span class="bdg bdg-r">RMT</span>':''}
+      <span class="bdg ${isA?'bdg-a':'bdg-h'}">${isA?'Tidak Hadir':'Hadir'}</span>`;
+    list.appendChild(row);
+  });
+  updChips();
+}
+function filMurid(){renderMurid()}
+function togol(m){absen.has(m.id)?absen.delete(m.id):absen.add(m.id);renderMurid()}
+function updChips(){
+  const mk=murid.filter(m=>m.kelas===kelasAktif),aL=mk.filter(m=>absen.has(m.id));
+  const box=g('aBox');if(!aL.length){box.style.display='none';return}
+  box.style.display='block';g('aC').innerHTML=aL.map(m=>`<span class="chip ${m.rmt?'chip-rmt':'chip-r'}">${m.nama.split(' ').slice(0,2).join(' ')}${m.rmt?' ·RMT':''}</span>`).join('');
+}
+function updateHantarBtn(){
+  const today=isoToday(),done=!!(cache[today]&&kelasAktif&&cache[today][kelasAktif]);
+  const bH=g('btnHantar'),bU=g('btnUpdate');
+  if(done){bH.disabled=true;bH.textContent='Kehadiran Telah Diisi';bU.style.display='block'}
+  else{bH.disabled=false;bH.textContent='Hantar Kehadiran';bU.style.display='none'}
+}
+function buildRec(){
+  const today=isoToday(),mk=murid.filter(m=>m.kelas===kelasAktif);
+  const j=mk.length,rmtJ=mk.filter(m=>m.rmt).length,rmtA=mk.filter(m=>m.rmt&&absen.has(m.id)).length;
+  const namaA=mk.filter(m=>absen.has(m.id)).map(m=>({id:m.id,nama:m.nama,rmt:m.rmt}));
+  const rmtNA=mk.filter(m=>m.rmt&&absen.has(m.id)).map(m=>({id:m.id,nama:m.nama}));
+  return{tarikh:today,hari:HARI[new Date().getDay()],kelas:kelasAktif,namaKelas:KELAS.find(k=>k.id===kelasAktif).panjang,jumlah:j,hadir:j-absen.size,rmtHadir:rmtJ-rmtA,rmtJumlah:rmtJ,absenIds:[...absen],namaAbsen:namaA,namaRmtAbsen:rmtNA,masa:new Date().toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})};
+}
+async function saveRec(rec){
+  if(!cache[rec.tarikh])cache[rec.tarikh]={};cache[rec.tarikh][kelasAktif]=rec;saveCache();
+  if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:kelasAktif,data:rec},{onConflict:'tarikh,kelas'})}catch(e){}}
+  buildKelas();updateHantarBtn();
+}
+async function hantarK(){if(!kelasAktif)return;const rec=buildRec();await saveRec(rec);toast(`Kehadiran ${rec.namaKelas} berjaya dihantar`)}
+async function updateK(){if(!kelasAktif)return;const rec=buildRec();await saveRec(rec);toast(`Laporan ${rec.namaKelas} berjaya dikemaskini`)}
+
+/* DASHBOARD */
+let pieChart1=null,pieChart2=null;
+async function renderDash(){
+  const t=g('dDate').value,div=g('dCont');
+  if(!t){div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="empty-t">Pilih tarikh untuk lihat dashboard</div></div>';return}
+  if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('kehadiran').select('*').eq('tarikh',t);if(data&&data.length){if(!cache[t])cache[t]={};data.forEach(r=>{cache[t][r.kelas]=r.data});saveCache()}}catch(e){}}
+  const rh=cache[t]||{},list=Object.values(rh),n=list.length;
+  const tM=list.reduce((a,r)=>a+r.jumlah,0),tH=list.reduce((a,r)=>a+r.hadir,0),tR=list.reduce((a,r)=>a+r.rmtHadir,0);
+  const isSD=isSchoolDay(t);
+
+  let html=`<div class="dbanner">
+    <div><div class="db-title">${fmtLong(t)}${!isSD?' <span style="background:#fff8e1;color:#e65100;font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid #ffe082;margin-left:6px;font-weight:700">Cuti</span>':''}</div>
+    <div class="db-sub">${n===0?'Tiada kelas diisi':n<5?`${n} daripada 5 kelas diisi`:'Semua 5 kelas telah diisi'}</div></div>
+    <span class="${n===5?'tag tag-g':'tag tag-a'}">${n}/5 kelas</span></div>
+  <div class="sr" style="margin-bottom:13px">
+    <div class="st st-bl"><div class="sn">${tM}</div><div class="sl">Jumlah Murid</div></div>
+    <div class="st st-gn"><div class="sn">${tH}</div><div class="sl">Hadir</div></div>
+    <div class="st st-co"><div class="sn">${tR}</div><div class="sl">RMT Hadir</div></div>
+    <div class="st st-pk"><div class="sn">${tM-tH}</div><div class="sl">Tidak Hadir</div></div>
+  </div>`;
+
+  // PIE CHARTS
+  const kPagi=KELAS.filter(k=>k.sesi==='pagi');
+  const kPetang=KELAS.filter(k=>k.sesi==='petang');
+  const totalPagi=murid.filter(m=>kPagi.find(k=>k.id===m.kelas)).length;
+  const totalPetang=murid.filter(m=>kPetang.find(k=>k.id===m.kelas)).length;
+  const namaPagi=kPagi.map(k=>k.panjang.replace('Tahun ','Thn ')).join(', ')||'Tiada';
+  const namaPetang=kPetang.map(k=>k.panjang.replace('Tahun ','Thn ')).join(', ')||'Tiada';
+  html+=`<div class="pie-row">
+    <div class="pie-card">
+      <div class="pie-title">Sesi Pagi</div>
+      <div class="pie-sub" title="${namaPagi}">${namaPagi.length>28?namaPagi.substring(0,28)+'…':namaPagi}</div>
+      <div class="pie-wrap"><canvas id="pieP"></canvas><div class="pie-center"><div class="pie-center-num" id="piePnum">${totalPagi}</div><div class="pie-center-lbl">murid</div></div></div>
+      <div class="pie-legend" id="piePleg"></div>
+    </div>
+    <div class="pie-card">
+      <div class="pie-title">Sesi Petang</div>
+      <div class="pie-sub" title="${namaPetang}">${namaPetang.length>28?namaPetang.substring(0,28)+'…':namaPetang}</div>
+      <div class="pie-wrap"><canvas id="pieTg"></canvas><div class="pie-center"><div class="pie-center-num" id="pieTnum">${totalPetang}</div><div class="pie-center-lbl">murid</div></div></div>
+      <div class="pie-legend" id="pieTleg"></div>
+    </div>
+  </div>`;
+
+  html+=`<div style="font-size:10.5px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">Butiran Mengikut Kelas</div>`;
+
+  KELAS.forEach(k=>{
+    const r=rh[k.id],pct=r?Math.round(r.hadir/r.jumlah*100):null;
+    const pc=pct===null?'':pct>=90?'pct-g':pct>=75?'pct-b':'pct-r';
+    const dc=pct===null?'#ccc':pct>=90?'var(--mg)':pct>=75?'var(--bl)':'var(--pk)';
+    const bc=pct===null?'var(--bd)':pct>=90?'var(--mg)':pct>=75?'var(--bl)':'var(--pk)';
+    let body='';
+    if(!r){body='<div style="font-size:12px;color:var(--t3);font-style:italic;padding:4px 0">Kehadiran belum diisi bagi kelas ini.</div>'}
+    else{
+      const aC=r.namaAbsen&&r.namaAbsen.length?r.namaAbsen.map(m=>`<span class="chip ${m.rmt?'chip-rmt':'chip-r'}">${m.nama.split(' ').slice(0,2).join(' ')}${m.rmt?' (RMT)':''}</span>`).join(''):'<span style="font-size:12px;color:var(--t3);font-style:italic">Semua murid hadir</span>';
+      const rC=r.namaRmtAbsen&&r.namaRmtAbsen.length?r.namaRmtAbsen.map(m=>`<span class="chip chip-rmt">${m.nama.split(' ').slice(0,2).join(' ')}</span>`).join(''):'<span style="font-size:12px;color:var(--t3);font-style:italic">Semua RMT hadir</span>';
+      body=`<div class="bw"><div class="bf" style="width:${pct}%;background:${bc}"></div></div>
+        <div class="sr" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px">
+          <div class="st st-gn" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.hadir}</div><div class="sl">Hadir</div></div>
+          <div class="st st-pk" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.jumlah-r.hadir}</div><div class="sl">T.Hadir</div></div>
+          <div class="st st-co" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.rmtHadir}</div><div class="sl">RMT Hadir</div></div>
+          <div class="st st-pk" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.rmtJumlah-r.rmtHadir}</div><div class="sl">RMT T.Hadir</div></div>
+        </div>
+        <div style="margin-bottom:9px"><div class="slbl">Murid Tidak Hadir</div><div class="cw">${aC}</div></div>
+        <div><div class="slbl">RMT Tidak Hadir</div><div class="cw">${rC}</div></div>
+        <div style="font-size:11px;color:var(--t3);margin-top:9px">Dikemas kini: ${r.masa}</div>`;
+    }
+    html+=`<div class="kd"><div class="kdh" onclick="togKD('kd${k.id}',this)"><div style="display:flex;align-items:center;gap:7px"><span class="kdd" style="background:${dc}"></span><span class="kdn">${k.panjang}</span></div><div style="display:flex;align-items:center;gap:9px"><span class="kdpct ${pc}">${pct!==null?pct+'%':'—'}</span><span id="chv${k.id}" style="font-size:11px;color:var(--t3)">▼</span></div></div><div class="kdb" id="kd${k.id}">${body}</div></div>`;
+  });
+
+  div.innerHTML=html;
+
+  // Build pie charts
+  setTimeout(()=>{
+    buildPie('pieP','piePnum','piePleg',kPagi,rh,'pagi');
+    buildPie('pieTg','pieTnum','pieTleg',kPetang,rh,'petang');
+  },50);
+}
+
+function buildPie(canvasId,numId,legId,kelasList,rh,label){
+  const cv=g(canvasId);if(!cv)return;
+  if(!kelasList.length){
+    g(numId).textContent='0';
+    g(legId).innerHTML='<span style="font-size:11px;color:var(--t3);font-style:italic">Tiada kelas dalam sesi ini</span>';
+    return;
+  }
+  // Total murid SEMUA kelas sesi ini (terdaftar)
+  const totalMuridSesi=murid.filter(m=>kelasList.find(k=>k.id===m.kelas)).length;
+  g(numId).textContent=totalMuridSesi;
+
+  // Kelas yang sudah diisi vs belum
+  const diisi=kelasList.filter(k=>rh[k.id]);
+  const belum=kelasList.filter(k=>!rh[k.id]);
+  const totalHadir=diisi.reduce((a,k)=>a+(rh[k.id]?rh[k.id].hadir:0),0);
+  const totalAbsen=diisi.reduce((a,k)=>a+(rh[k.id]?rh[k.id].jumlah-rh[k.id].hadir:0),0);
+  const totalBelum=murid.filter(m=>belum.find(k=>k.id===m.kelas)).length;
+
+  const existing=Chart.getChart(cv);if(existing)existing.destroy();
+
+  // Build dataset: hadir(green), tidak hadir(pink), belum diisi(gray)
+  const data=[],bgColors=[],lbls=[];
+  if(totalHadir>0){data.push(totalHadir);bgColors.push('#5a7a4a');lbls.push('Hadir')}
+  if(totalAbsen>0){data.push(totalAbsen);bgColors.push('#e8a0b4');lbls.push('Tidak Hadir')}
+  if(totalBelum>0){data.push(totalBelum);bgColors.push('#d4d8d0');lbls.push('Belum Diisi')}
+  if(data.length===0){data.push(1);bgColors.push('#e8ece4');lbls.push('Kosong')}
+
+  new Chart(cv,{
+    type:'doughnut',
+    data:{labels:lbls,datasets:[{data,backgroundColor:bgColors,borderWidth:2,borderColor:'#fff',hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'70%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} murid`}}},
+      animation:{duration:400}}
+  });
+
+  const pctH=totalMuridSesi>0?Math.round(totalHadir/totalMuridSesi*100):0;
+  const pctA=totalMuridSesi>0?Math.round(totalAbsen/totalMuridSesi*100):0;
+  const pctB=totalMuridSesi>0?100-pctH-pctA:0;
+  let legHtml='';
+  if(totalHadir>0)legHtml+=`<div class="pie-leg-item"><div class="pie-leg-dot" style="background:#5a7a4a"></div><span>Hadir: <strong>${totalHadir}</strong> (${pctH}%)</span></div>`;
+  if(totalAbsen>0)legHtml+=`<div class="pie-leg-item"><div class="pie-leg-dot" style="background:#e8a0b4"></div><span>Tidak hadir: <strong>${totalAbsen}</strong> (${pctA}%)</span></div>`;
+  if(totalBelum>0)legHtml+=`<div class="pie-leg-item"><div class="pie-leg-dot" style="background:#d4d8d0"></div><span>Belum diisi: <strong>${totalBelum}</strong> murid (${belum.map(k=>k.id).join(', ')})</span></div>`;
+  legHtml+=`<div style="font-size:10px;color:var(--t3);margin-top:5px;padding-top:5px;border-top:1px solid var(--bd)">${diisi.length}/${kelasList.length} kelas telah diisi</div>`;
+  g(legId).innerHTML=legHtml;
+}
+
+function togKD(id,hdr){const b=g(id),op=b.classList.contains('open');b.classList.toggle('open');const c=hdr.querySelector('[id^="chv"]');if(c)c.textContent=op?'▼':'▲'}
+
+/* RMT PANEL */
+function renderRMT(){
+  const bulan=parseInt(g('rB').value),tahun=parseInt(g('rY').value);
+  if(isNaN(bulan)||isNaN(tahun))return;
+  const fw=g('rF');
+  if(!fw.dataset.built){
+    fw.innerHTML='';
+    const all=document.createElement('button');all.className='fb active';all.textContent='Semua Kelas';
+    all.onclick=()=>{rmtFilt='semua';document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));all.classList.add('active');renderRMT()};
+    fw.appendChild(all);
+    KELAS.forEach(k=>{const b=document.createElement('button');b.className='fb';b.textContent=k.panjang;b.onclick=()=>{rmtFilt=k.id;document.querySelectorAll('.fb').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderRMT()};fw.appendChild(b)});
+    fw.dataset.built='1';
+  }
+  const days=dim(tahun,bulan),kList=rmtFilt==='semua'?KELAS:KELAS.filter(k=>k.id===rmtFilt);
+  const dh=[];
+  for(let d=1;d<=days;d++){const ds=String(d).padStart(2,'0'),ms=String(bulan+1).padStart(2,'0'),iso=`${tahun}-${ms}-${ds}`,di=new Date(iso+'T00:00:00').getDay();dh.push({d,iso,di,wk:di===0||di===6})}
+  let tR=0,tH=0,tA=0;const area=g('rA');area.innerHTML='';
+  kList.forEach(k=>{
+    const rm=murid.filter(m=>m.kelas===k.id&&m.rmt);if(!rm.length)return;tR+=rm.length;
+    const wrap=document.createElement('div');wrap.className='rtw';
+    let th=`<th class="cn">Nama Murid</th><th class="ck">Kelas</th>`;
+    dh.forEach(d=>{th+=`<th style="min-width:22px${d.wk?';background:#1a2a12':''}"${d.wk?'':!isSchoolDay(d.iso)?' style="min-width:22px;background:#2a1a1a"':''}>
+      <div class="dn">${d.d}</div><div class="dl">${HARI_S[d.di]}</div></th>`});
+    let rows='';
+    rm.forEach(m=>{
+      let cells=`<td class="cn" title="${m.nama}">${m.nama}</td><td class="ck">${m.kelas}</td>`;
+      dh.forEach(d=>{
+        if(d.wk){cells+='<td><div class="cw2"></div></td>';return}
+        const rec=cache[d.iso]&&cache[d.iso][k.id];
+        if(!rec){cells+='<td><div class="ce"></div></td>';return}
+        const isA=rec.absenIds.includes(m.id);
+        if(!isA){tH++;cells+=`<td><div class="ch"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,8 8.5,2" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></td>`}
+        else{tA++;cells+=`<td><div class="ca"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><line x1="2" y1="2" x2="8" y2="8" stroke="#d45a78" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="2" x2="2" y2="8" stroke="#d45a78" stroke-width="1.8" stroke-linecap="round"/></svg></div></td>`}
+      });
+      rows+=`<tr>${cells}</tr>`;
+    });
+    wrap.innerHTML=`<div class="rtkh"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>${k.panjang} — ${rm.length} murid RMT</div>
+      <div style="overflow-x:auto"><table class="rt"><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    area.appendChild(wrap);
+  });
+  const tot=tH+tA;
+  g('rSt').innerHTML=`
+    <div class="st st-co"><div class="sn">${tR}</div><div class="sl">Murid RMT</div></div>
+    <div class="st st-gn"><div class="sn">${tH}</div><div class="sl">Rekod Hadir</div></div>
+    <div class="st st-pk"><div class="sn">${tA}</div><div class="sl">Rekod T.Hadir</div></div>
+    <div class="st st-bl"><div class="sn">${tot?Math.round(tH/tot*100)+'%':'—'}</div><div class="sl">Kadar Hadir</div></div>`;
+}
+
+/* REKOD */
+async function renderRekod(){
+  if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('kehadiran').select('*').order('tarikh',{ascending:false});if(data&&data.length){data.forEach(r=>{if(!cache[r.tarikh])cache[r.tarikh]={};cache[r.tarikh][r.kelas]=r.data});saveCache()}}catch(e){}}
+  const div=g('rekL');
+  const all=Object.entries(cache).sort((a,b)=>b[0].localeCompare(a[0]));
+  if(!all.length){div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Tiada rekod lagi</div></div>';return}
+  div.innerHTML='';
+  all.forEach(([t,rh])=>{
+    const list=Object.values(rh),belum=KELAS.filter(k=>!rh[k.id]);
+    const w=document.createElement('div');
+    const isSD=isSchoolDay(t);
+    w.innerHTML=`<div class="rdh">${fmtLong(t)}${!isSD?' <span style="background:#fff8e1;color:#e65100;font-size:10px;padding:1px 7px;border-radius:8px;border:1px solid #ffe082">Cuti</span>':''} · ${list.length}/5 kelas</div>`;
+    list.forEach(r=>{
+      const pct=Math.round(r.hadir/r.jumlah*100),pc=pct>=90?'pct-g':pct>=75?'pct-b':'pct-r';
+      const aC=r.namaAbsen&&r.namaAbsen.length?r.namaAbsen.map(m=>`<span class="chip ${m.rmt?'chip-rmt':'chip-r'}" style="font-size:10px;padding:2px 7px">${m.nama.split(' ')[0]}${m.rmt?' (R)':''}</span>`).join(''):'<span style="font-size:11px;color:var(--t3);font-style:italic">Semua hadir</span>';
+      const rC=r.namaRmtAbsen&&r.namaRmtAbsen.length?r.namaRmtAbsen.map(m=>`<span class="chip chip-rmt" style="font-size:10px;padding:2px 7px">${m.nama.split(' ')[0]}</span>`).join(''):'<span style="font-size:11px;color:var(--t3);font-style:italic">Semua RMT hadir</span>';
+      w.innerHTML+=`<div class="ri"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:700">${r.namaKelas}</span><span class="kdpct ${pc}">${pct}% (${r.hadir}/${r.jumlah})</span></div><div style="margin-bottom:2px"><span style="font-size:10px;font-weight:700;color:var(--t3)">TIDAK HADIR: </span>${aC}</div><div><span style="font-size:10px;font-weight:700;color:var(--t3)">RMT TIDAK HADIR: </span>${rC}</div></div>`;
+    });
+    if(belum.length)w.innerHTML+=`<div style="padding:7px 11px;background:var(--cream);border-radius:var(--rs);border:1px dashed var(--bd);margin-top:4px;font-size:11px;color:var(--t3)">Belum diisi: ${belum.map(k=>`<span style="background:#fff8e1;color:#e65100;padding:2px 7px;border-radius:8px;border:1px solid #ffe082;font-size:10px">${k.panjang}</span>`).join(' ')}</div>`;
+    div.appendChild(w);
+  });
+}
+
+/* ADMIN */
+let selIds=new Set();
+function loadAL(){
+  const k=g('aKF').value,c=(g('aCr').value||'').toLowerCase();
+  const list=murid.filter(m=>(!k||m.kelas===k)&&(!c||m.nama.toLowerCase().includes(c)));
+  selIds=new Set();g('cbAll').checked=false;g('delSelBtn').classList.remove('show');
+  const div=g('aL');
+  if(!list.length){div.innerHTML='<div class="empty" style="padding:20px"><div class="empty-t">Tiada murid dijumpai</div></div>';return}
+  div.innerHTML='';
+  list.forEach(m=>{
+    const row=document.createElement('div');row.className='amr';row.id='amr-'+m.id;
+    row.innerHTML=`<input type="checkbox" class="amr-cb" data-id="${m.id}" onchange="togSel(${m.id},this)">
+      <div style="flex:1;min-width:0"><div class="amr-name">${m.nama}</div><div class="amr-meta">${KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas} · ${m.jantina==='L'?'Lelaki':'Perempuan'}${m.rmt?' · <span style="color:var(--pk2)">RMT</span>':''}</div></div>
+      <button class="ibtn" onclick="openE(${m.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="ibtn ibtn-r" onclick="openD(${m.id},'${m.nama.replace(/'/g,"\\'")}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>`;
+    div.appendChild(row);
+  });
+}
+function togSel(id,cb){
+  if(cb.checked)selIds.add(id);else selIds.delete(id);
+  const btn=g('delSelBtn');
+  if(selIds.size>0){btn.classList.add('show');g('delSelTxt').textContent=`Padam ${selIds.size} Murid Terpilih`}
+  else{btn.classList.remove('show')}
+  const allCbs=document.querySelectorAll('.amr-cb');
+  g('cbAll').checked=allCbs.length>0&&[...allCbs].every(cb=>cb.checked);
+  document.querySelector(`#amr-${id}`).classList.toggle('selected',selIds.has(id));
+}
+function togSelAll(masterCb){
+  const allCbs=document.querySelectorAll('.amr-cb');
+  selIds=new Set();
+  allCbs.forEach(cb=>{cb.checked=masterCb.checked;const id=parseInt(cb.dataset.id);if(masterCb.checked){selIds.add(id);document.querySelector(`#amr-${id}`)?.classList.add('selected')}else{document.querySelector(`#amr-${id}`)?.classList.remove('selected')}});
+  const btn=g('delSelBtn');
+  if(selIds.size>0){btn.classList.add('show');g('delSelTxt').textContent=`Padam ${selIds.size} Murid Terpilih`}
+  else{btn.classList.remove('show')}
+}
+function delSelected(){
+  if(!selIds.size)return;
+  delIds=[...selIds];
+  g('dsTxt').textContent=`Anda pasti mahu memadam ${delIds.length} murid yang dipilih? Tindakan ini tidak boleh dibatalkan.`;
+  g('dsModal').style.display='flex';
+}
+async function confDelSel(){
+  g('dsModal').style.display='none';
+  if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('murid').delete().in('id',delIds)}catch(e){}}
+  murid=murid.filter(m=>!delIds.includes(m.id));
+  selIds=new Set();delIds=[];
+  loadAL();buildKelas();toast('Murid terpilih berjaya dipadam');
+}
+async function addMurid(){
+  const nm=g('tNm').value.trim(),kl=g('tKl').value,jt=g('tJt').value,rmt=g('tRmt').checked;
+  if(!nm){toast('Sila masukkan nama murid');return}
+  const obj={nama:nm,kelas:kl,jantina:jt,rmt};
+  if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('murid').insert([obj]).select();if(data&&data[0]){murid.push(data[0]);g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);return}}catch(e){}}
+  murid.push({...obj,id:Date.now()});g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);
+}
+async function impPukal(){
+  const raw=g('pDat').value.trim(),okl=g('pKl').value;
+  if(!raw){toast('Tiada data untuk diimport');return}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  let ok=0,fail=0,errs=[];
+  for(const line of lines){
+    const p=line.split(',').map(x=>x.trim());
+    const nm=p[0],kl=okl||p[1]||'',jt=(p[2]||'L').toUpperCase()==='P'?'P':'L';
+    const rv=(p[3]||'').toLowerCase(),rmt=rv==='ya'||rv==='y'||rv==='true'||rv==='1';
+    if(!nm||!kl||!KELAS.find(k=>k.id===kl)){fail++;errs.push(`"${line}"`);continue}
+    const obj={nama:nm,kelas:kl,jantina:jt,rmt};
+    if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('murid').insert([obj]).select();if(data&&data[0]){murid.push(data[0]);ok++;continue}}catch(e){}}
+    murid.push({...obj,id:Date.now()+ok});ok++;
+  }
+  buildKelas();
+  g('pRes').innerHTML=`<div class="${ok>0?'res-ok':'res-err'}">${ok} murid berjaya diimport${fail?`<br>${fail} gagal: ${errs.join(', ')}`:''}</div>`;
+  if(ok>0){g('pDat').value='';toast(`${ok} murid berjaya diimport`)}
+}
+function openE(id){const m=murid.find(x=>x.id===id);if(!m)return;g('eId').value=id;g('eNm').value=m.nama;g('eKl').value=m.kelas;g('eJt').value=m.jantina;g('eRmt').checked=m.rmt;g('eModal').style.display='flex'}
+function closeE(){g('eModal').style.display='none'}
+async function saveE(){
+  const id=parseInt(g('eId').value),nm=g('eNm').value.trim(),kl=g('eKl').value,jt=g('eJt').value,rmt=g('eRmt').checked;
+  if(!nm){toast('Nama tidak boleh kosong');return}
+  if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('murid').update({nama:nm,kelas:kl,jantina:jt,rmt}).eq('id',id)}catch(e){}}
+  const i=murid.findIndex(m=>m.id===id);if(i>=0)murid[i]={...murid[i],nama:nm,kelas:kl,jantina:jt,rmt};
+  closeE();loadAL();buildKelas();toast('Maklumat murid berjaya dikemas kini');
+}
+function openD(id,nm){delId=id;g('dTxt').innerHTML=`Anda pasti mahu memadam <strong>${nm}</strong>? Tindakan ini tidak boleh dibatalkan.`;g('dModal').style.display='flex'}
+function closeD(){g('dModal').style.display='none';delId=null}
+async function confD(){
+  if(!delId)return;
+  if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('murid').delete().eq('id',delId)}catch(e){}}
+  murid=murid.filter(m=>m.id!==delId);closeD();loadAL();buildKelas();toast('Murid berjaya dipadam');
+}
+function aTab(id,btn){document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.ap').forEach(p=>p.classList.remove('active'));btn.classList.add('active');g('ap-'+id).classList.add('active');if(id==='senarai')loadAL();if(id==='sesi')renderSesiCfg();if(id==='kelas')renderKelasAdmin()}
+
+/* ── URUS KELAS ── */
+let delKelasId=null;
+
+function renderKelasAdmin(){
+  const div=g('kelasAdminList');if(!div)return;
+  div.innerHTML='';
+  if(!KELAS_DEFAULT.length){div.innerHTML='<div class="empty" style="padding:20px"><div class="empty-t">Tiada kelas</div></div>';return}
+  KELAS_DEFAULT.forEach(k=>{
+    const jml=murid.filter(m=>m.kelas===k.id).length;
+    const sesi=sesiConfig[k.id]||'petang';
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:13px 14px;background:var(--cream);border:1px solid var(--bd);border-radius:10px;margin-bottom:7px;transition:all .15s';
+    row.innerHTML=`
+      <div style="width:44px;height:44px;border-radius:12px;background:${sesi==='pagi'?'var(--mgp)':'var(--pkp)'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+        <div style="font-size:14px;font-weight:800;color:${sesi==='pagi'?'var(--mg2)':'var(--pk2)'};line-height:1">${k.id}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;color:var(--t1)">${k.panjang}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">
+          ${jml} murid &nbsp;·&nbsp;
+          <span style="background:${sesi==='pagi'?'var(--mgp3)':'var(--pkp3)'};color:${sesi==='pagi'?'var(--mg2)':'var(--pk2)'};padding:1px 7px;border-radius:8px;font-weight:600">${sesi==='pagi'?'Sesi Pagi':'Sesi Petang'}</span>
+        </div>
+      </div>
+      <button class="ibtn" title="Edit kelas" onclick="openEK('${k.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="ibtn ibtn-r" title="Padam kelas" onclick="openDK('${k.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>`;
+    div.appendChild(row);
+  });
+}
+
+// New kelas sesi selector
+let nKlSesiSel='petang';
+function setNKlSesi(sesi){
+  nKlSesiSel=sesi;g('nKlSesiVal').value=sesi;
+  const p=g('nKlSesiPagi'),t=g('nKlSesiPetang');
+  if(sesi==='pagi'){p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--mg);background:var(--mgp);color:var(--mg2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s'}
+  else{t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--pk);background:var(--pkp);color:var(--pk2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s'}
+}
+
+function tambahKelas(){
+  const id=(g('nKlId').value||'').trim().toUpperCase();
+  const nama=(g('nKlNama').value||'').trim();
+  const panjang=(g('nKlPanjang').value||'').trim();
+  const sesi=g('nKlSesiVal').value||'petang';
+  const res=g('nKlRes');
+  if(!id||!nama||!panjang){res.innerHTML='<div class="res-err">Sila isi semua maklumat kelas.</div>';return}
+  if(!/^[A-Z0-9]{1,4}$/.test(id)){res.innerHTML='<div class="res-err">ID kelas hanya boleh mengandungi huruf besar dan nombor (maks 4 aksara).</div>';return}
+  if(KELAS_DEFAULT.find(k=>k.id===id)){res.innerHTML=`<div class="res-err">ID kelas "${id}" sudah wujud. Sila gunakan ID yang lain.</div>`;return}
+  KELAS_DEFAULT.push({id,nama,panjang});
+  sesiConfig[id]=sesi;
+  saveKelasConfig();saveSesiConfig();
+  KELAS=getKelas();rebuildKelasSelects();buildKelas();renderKelasAdmin();
+  g('nKlId').value='';g('nKlNama').value='';g('nKlPanjang').value='';
+  res.innerHTML=`<div class="res-ok">Kelas <strong>${panjang}</strong> (${id}) berjaya ditambah sebagai ${sesi==='pagi'?'Sesi Pagi':'Sesi Petang'}.</div>`;
+  toast(`Kelas ${panjang} berjaya ditambah`);
+  setTimeout(()=>{if(res)res.innerHTML=''},4000);
+}
+
+// Edit kelas modal
+let ekSesiSel='petang';
+function openEK(id){
+  const k=KELAS_DEFAULT.find(x=>x.id===id);if(!k)return;
+  g('ekId').value=id;g('ekIdDisp').value=id;g('ekNama').value=k.nama;g('ekPanjang').value=k.panjang;
+  ekSesiSel=sesiConfig[id]||'petang';g('ekSesiVal').value=ekSesiSel;
+  setEKSesi(ekSesiSel);
+  g('ekModal').style.display='flex';
+}
+function closeEK(){g('ekModal').style.display='none'}
+function setEKSesi(sesi){
+  ekSesiSel=sesi;g('ekSesiVal').value=sesi;
+  const p=g('ekSesiPagi'),t=g('ekSesiPetang');
+  if(sesi==='pagi'){p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--mg);background:var(--mgp);color:var(--mg2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s'}
+  else{t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--pk);background:var(--pkp);color:var(--pk2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s'}
+}
+function saveEK(){
+  const id=g('ekId').value,nama=g('ekNama').value.trim(),panjang=g('ekPanjang').value.trim(),sesi=g('ekSesiVal').value;
+  if(!nama||!panjang){toast('Sila isi nama kelas');return}
+  const i=KELAS_DEFAULT.findIndex(k=>k.id===id);
+  if(i>=0)KELAS_DEFAULT[i]={...KELAS_DEFAULT[i],nama,panjang};
+  sesiConfig[id]=sesi;
+  saveKelasConfig();saveSesiConfig();
+  KELAS=getKelas();rebuildKelasSelects();buildKelas();renderKelasAdmin();renderSesiCfg();
+  closeEK();toast(`Kelas ${panjang} berjaya dikemas kini`);
+}
+
+// Delete kelas modal
+function openDK(id){
+  delKelasId=id;
+  const k=KELAS_DEFAULT.find(x=>x.id===id);if(!k)return;
+  const jml=murid.filter(m=>m.kelas===id).length;
+  g('dkTxt').innerHTML=`Anda pasti mahu memadam kelas <strong>${k.panjang} (${id})</strong>?`;
+  const warn=g('dkWarn'),btn=g('dkConfBtn');
+  if(jml>0){
+    warn.style.display='block';
+    warn.innerHTML=`<strong>Amaran:</strong> Terdapat <strong>${jml} murid</strong> dalam kelas ini. Murid-murid ini masih wujud dalam sistem tetapi tiada kelas. Sila pindahkan mereka ke kelas lain dahulu.`;
+    btn.disabled=true;btn.style.opacity='.5';btn.style.cursor='not-allowed';
+  } else {
+    warn.style.display='none';btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+  }
+  g('dkModal').style.display='flex';
+}
+function closeDK(){g('dkModal').style.display='none';delKelasId=null}
+function confDK(){
+  if(!delKelasId)return;
+  const k=KELAS_DEFAULT.find(x=>x.id===delKelasId);
+  KELAS_DEFAULT=KELAS_DEFAULT.filter(x=>x.id!==delKelasId);
+  delete sesiConfig[delKelasId];
+  saveKelasConfig();saveSesiConfig();
+  KELAS=getKelas();rebuildKelasSelects();buildKelas();renderKelasAdmin();renderSesiCfg();
+  closeDK();toast(`Kelas ${k?.panjang||delKelasId} berjaya dipadam`);
+}
+
+function renderSesiCfg(){
+  refreshKelas();
+  const div=g('sesiCfgList');div.innerHTML='';
+  KELAS.forEach(k=>{
+    const jumlahMurid=murid.filter(m=>m.kelas===k.id).length;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--cream);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px';
+    row.innerHTML=`<div><div style="font-size:13px;font-weight:600;color:var(--t1)">${k.panjang}</div><div style="font-size:11px;color:var(--t3);margin-top:2px">${jumlahMurid} murid didaftarkan</div></div>
+      <div style="display:flex;gap:6px">
+        <button id="sbtn-pagi-${k.id}" onclick="setSesiBtn('${k.id}','pagi')" class="sesi-btn ${sesiConfig[k.id]==='pagi'?'sesi-btn-active-pagi':'sesi-btn-inactive'}" style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .15s">Sesi Pagi</button>
+        <button id="sbtn-petang-${k.id}" onclick="setSesiBtn('${k.id}','petang')" class="sesi-btn ${sesiConfig[k.id]==='petang'?'sesi-btn-active-petang':'sesi-btn-inactive'}" style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .15s">Sesi Petang</button>
+      </div>`;
+    div.appendChild(row);
+  });
+  renderSesiSummary();
+}
+
+function setSesiBtn(kelasId,sesi){
+  sesiConfig[kelasId]=sesi;
+  ['pagi','petang'].forEach(s=>{
+    const btn=g(`sbtn-${s}-${kelasId}`);if(!btn)return;
+    if(s===sesi){
+      btn.style.background=s==='pagi'?'var(--mg)':'var(--pk)';
+      btn.style.color='#fff';btn.style.borderColor=s==='pagi'?'var(--mg2)':'var(--pk2)';
+    } else {
+      btn.style.background='var(--white)';btn.style.color='var(--t2)';btn.style.borderColor='var(--bd)';
+    }
+  });
+  renderSesiSummary();
+}
+
+function renderSesiSummary(){
+  const kPagi=KELAS_DEFAULT.filter(k=>sesiConfig[k.id]==='pagi');
+  const kPetang=KELAS_DEFAULT.filter(k=>sesiConfig[k.id]==='petang');
+  const tPagi=murid.filter(m=>kPagi.find(k=>k.id===m.kelas)).length;
+  const tPetang=murid.filter(m=>kPetang.find(k=>k.id===m.kelas)).length;
+  const div=g('sesiSummary');if(!div)return;
+  div.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="background:var(--mgp);border:1px solid var(--mgp3);border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:var(--mg2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sesi Pagi</div>
+      <div style="font-size:26px;font-weight:800;color:var(--mg2)">${tPagi}</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:3px">murid (${kPagi.length} kelas)</div>
+      <div style="font-size:11px;color:var(--mg2);margin-top:6px;font-weight:500">${kPagi.map(k=>k.panjang).join(', ')||'Tiada kelas'}</div>
+    </div>
+    <div style="background:var(--pkp);border:1px solid var(--pkp3);border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:10px;font-weight:700;color:var(--pk2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Sesi Petang</div>
+      <div style="font-size:26px;font-weight:800;color:var(--pk2)">${tPetang}</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:3px">murid (${kPetang.length} kelas)</div>
+      <div style="font-size:11px;color:var(--pk2);margin-top:6px;font-weight:500">${kPetang.map(k=>k.panjang).join(', ')||'Tiada kelas'}</div>
+    </div>
+  </div>`;
+}
+
+function saveSesiCfg(){
+  saveSesiConfig();KELAS=getKelas();buildKelas();
+  g('sesiRes').innerHTML='<div class="res-ok" style="margin-top:10px">Tetapan sesi berjaya disimpan. Dashboard carta pai akan dikemas kini.</div>';
+  setTimeout(()=>{if(g('sesiRes'))g('sesiRes').innerHTML=''},3000);
+  toast('Tetapan sesi berjaya disimpan');
+}
+
+/* EXPORT */
+function expRMT(){const rm=murid.filter(m=>m.rmt);const rows=[['Bil','Nama Murid','Kelas','Jantina','Status']];rm.forEach((m,i)=>rows.push([i+1,m.nama,KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas,m.jantina==='L'?'Lelaki':'Perempuan','RMT']));xlsx(rows,'Senarai_Murid_RMT')}
+function expMuridKelas(){const rows=[['Bil','Nama Murid','Kelas','Jantina','Status RMT']];[...murid].sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.nama.localeCompare(b.nama)).forEach((m,i)=>rows.push([i+1,m.nama,KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas,m.jantina==='L'?'Lelaki':'Perempuan',m.rmt?'RMT':'Biasa']));xlsx(rows,'Senarai_Murid_Ikut_Kelas')}
+function expRekod(){const rows=[['Tarikh','Hari','Kelas','Jumlah','Hadir','Tidak Hadir','RMT Jumlah','RMT Hadir','RMT T.Hadir','Murid Tidak Hadir','RMT Tidak Hadir']];Object.entries(cache).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([t,rh])=>{Object.values(rh).forEach(r=>rows.push([t,r.hari||'',r.namaKelas,r.jumlah,r.hadir,r.jumlah-r.hadir,r.rmtJumlah,r.rmtHadir,r.rmtJumlah-r.rmtHadir,(r.namaAbsen||[]).map(m=>m.nama).join(', '),(r.namaRmtAbsen||[]).map(m=>m.nama).join(', ')]))});xlsx(rows,'Rekod_Kehadiran')}
+function xlsx(rows,name){if(!window.XLSX){toast('Library Excel belum dimuatkan');return}const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=Array(rows[0].length).fill({wch:26});const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data');XLSX.writeFile(wb,`${name}_${isoToday()}.xlsx`);toast('Fail Excel berjaya dimuat turun')}
+function toast(msg){const t=g('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}
+</script>
+</body>
+</html>
