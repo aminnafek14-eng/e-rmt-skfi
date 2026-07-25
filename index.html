@@ -413,7 +413,10 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
   <div class="rleg"><span class="li"><span class="lb lb-h"></span>Hadir</span><span class="li"><span class="lb lb-a"></span>Tidak Hadir</span><span class="li"><span class="lb lb-w"></span>Hujung Minggu</span><span class="li"><span class="lb lb-e"></span>Tiada Data</span></div>
   <div class="sr" id="rSt"></div>
   <div id="rA"></div>
-  <button class="btnexp" onclick="expRMT()" style="margin-top:4px">Export RMT ke Excel</button>
+  <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
+    <button class="btnexp" onclick="expRMT()">Export RMT ke Excel</button>
+    <button class="btnexp" onclick="printRMT()" style="background:linear-gradient(135deg,#4a7ab0,#2a5a90)">Print Rekod RMT</button>
+  </div>
 </div>
 
 <!-- REKOD -->
@@ -509,11 +512,13 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
   </div>
   <div class="ap" id="ap-export">
     <div class="card">
-      <div class="clbl">Export Data</div>
+      <div class="clbl">Export &amp; Print Data</div>
       <div class="eg">
-        <div class="ec" onclick="expMuridKelas()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="ec-t">Senarai Murid Ikut Kelas</div><div class="ec-d">Semua nama murid mengikut kelas dalam Excel</div><div class="ec-btn">Export Excel</div></div>
-        <div class="ec" onclick="expRMT()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="ec-t">Data Murid RMT</div><div class="ec-d">Senarai lengkap murid RMT beserta kelas</div><div class="ec-btn">Export Excel</div></div>
-        <div class="ec" onclick="expRekod()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="ec-t">Rekod Kehadiran</div><div class="ec-d">Semua rekod kehadiran harian dalam Excel</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expMuridKelas()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="ec-t">Senarai Murid Ikut Kelas</div><div class="ec-d">Semua murid dalam Excel berwarna</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expRMT()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="ec-t">Data Murid RMT</div><div class="ec-d">Senarai murid RMT dalam Excel berwarna</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expRekod()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="ec-t">Rekod Kehadiran</div><div class="ec-d">Semua rekod kehadiran dalam Excel berwarna</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="printKehadiran()" style="border-color:var(--bl)"><div class="ec-ic" style="background:var(--blp)"><svg viewBox="0 0 24 24" fill="none" stroke="#4a7ab0" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div><div class="ec-t">Print Laporan Kehadiran</div><div class="ec-d">Cetak laporan harian dalam format landscape berwarna</div><div class="ec-btn" style="background:var(--blp);color:#4a7ab0">Print / PDF</div></div>
+        <div class="ec" onclick="printRMT()" style="border-color:var(--pk2)"><div class="ec-ic" style="background:var(--pkp)"><svg viewBox="0 0 24 24" fill="none" stroke="#c04868" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div><div class="ec-t">Print Rekod RMT</div><div class="ec-d">Cetak jadual bulanan RMT dalam format landscape berwarna</div><div class="ec-btn" style="background:var(--pkp);color:var(--pk2)">Print / PDF</div></div>
       </div>
     </div>
   </div>
@@ -574,8 +579,8 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
 <div class="lov" id="LOV" style="display:none"><div class="spin"></div><div style="font-size:13px;color:var(--t2);font-weight:500">Memuatkan...</div></div>
 
 <script>
-const SB_URL='https://YOUR_PROJECT.supabase.co';
-const SB_KEY='YOUR_ANON_KEY';
+const SB_URL='https://iwjrfthbxaxeolzskkvc.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3anJmdGhieGF4ZW9senNra3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTg4OTEsImV4cCI6MjEwMDQ5NDg5MX0.s5c4d5eXOKLQm4fmgxgjSbPJ2QYjPBAFHt3sPtQbmCA';
 let sb=null;
 try{if(window.supabase)sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
 
@@ -663,8 +668,26 @@ function logout(){role=null;g('APP').style.display='none';g('LS').style.display=
 
 /* DATA */
 async function loadMurid(){
-  if(sb&&!SB_URL.includes('YOUR')){try{const{data,error}=await sb.from('murid').select('*').order('kelas').order('nama');if(!error&&data){murid=data;return}}catch(e){}}
+  // Try Supabase first
+  if(sb&&!SB_URL.includes('YOUR')){
+    try{
+      const{data,error}=await sb.from('murid').select('*').order('kelas').order('nama');
+      if(!error&&data&&data.length>0){
+        murid=data;
+        // Sync to localStorage as backup
+        localStorage.setItem('muridCache',JSON.stringify(murid));
+        return;
+      }
+    }catch(e){console.warn('Supabase murid load failed:',e)}
+  }
+  // Fallback: localStorage cache
+  try{
+    const cached=localStorage.getItem('muridCache');
+    if(cached){const parsed=JSON.parse(cached);if(parsed&&parsed.length>0){murid=parsed;return}}
+  }catch(e){}
+  // Last resort: demo data
   murid=demoMurid();
+  localStorage.setItem('muridCache',JSON.stringify(murid));
 }
 function demoMurid(){return[
   {id:1,nama:'Ahmad Hakimi bin Razali',kelas:'1A',jantina:'L',rmt:true},{id:2,nama:'Nurul Ain binti Hassan',kelas:'1A',jantina:'P',rmt:false},
@@ -1010,6 +1033,7 @@ async function confDelSel(){
   g('dsModal').style.display='none';
   if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('murid').delete().in('id',delIds)}catch(e){}}
   murid=murid.filter(m=>!delIds.includes(m.id));
+  localStorage.setItem('muridCache',JSON.stringify(murid));
   selIds=new Set();delIds=[];
   loadAL();buildKelas();toast('Murid terpilih berjaya dipadam');
 }
@@ -1017,8 +1041,20 @@ async function addMurid(){
   const nm=g('tNm').value.trim(),kl=g('tKl').value,jt=g('tJt').value,rmt=g('tRmt').checked;
   if(!nm){toast('Sila masukkan nama murid');return}
   const obj={nama:nm,kelas:kl,jantina:jt,rmt};
-  if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('murid').insert([obj]).select();if(data&&data[0]){murid.push(data[0]);g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);return}}catch(e){}}
-  murid.push({...obj,id:Date.now()});g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);
+  if(sb&&!SB_URL.includes('YOUR')){
+    try{
+      const{data,error}=await sb.from('murid').insert([obj]).select();
+      if(!error&&data&&data[0]){
+        murid.push(data[0]);
+        localStorage.setItem('muridCache',JSON.stringify(murid));
+        g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);return;
+      }
+    }catch(e){console.warn(e)}
+  }
+  const newM={...obj,id:Date.now()};
+  murid.push(newM);
+  localStorage.setItem('muridCache',JSON.stringify(murid));
+  g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);
 }
 async function impPukal(){
   const raw=g('pDat').value.trim(),okl=g('pKl').value;
@@ -1045,6 +1081,7 @@ async function saveE(){
   if(!nm){toast('Nama tidak boleh kosong');return}
   if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('murid').update({nama:nm,kelas:kl,jantina:jt,rmt}).eq('id',id)}catch(e){}}
   const i=murid.findIndex(m=>m.id===id);if(i>=0)murid[i]={...murid[i],nama:nm,kelas:kl,jantina:jt,rmt};
+  localStorage.setItem('muridCache',JSON.stringify(murid));
   closeE();loadAL();buildKelas();toast('Maklumat murid berjaya dikemas kini');
 }
 function openD(id,nm){delId=id;g('dTxt').innerHTML=`Anda pasti mahu memadam <strong>${nm}</strong>? Tindakan ini tidak boleh dibatalkan.`;g('dModal').style.display='flex'}
@@ -1052,7 +1089,9 @@ function closeD(){g('dModal').style.display='none';delId=null}
 async function confD(){
   if(!delId)return;
   if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('murid').delete().eq('id',delId)}catch(e){}}
-  murid=murid.filter(m=>m.id!==delId);closeD();loadAL();buildKelas();toast('Murid berjaya dipadam');
+  murid=murid.filter(m=>m.id!==delId);
+  localStorage.setItem('muridCache',JSON.stringify(murid));
+  closeD();loadAL();buildKelas();toast('Murid berjaya dipadam');
 }
 function aTab(id,btn){document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.ap').forEach(p=>p.classList.remove('active'));btn.classList.add('active');g('ap-'+id).classList.add('active');if(id==='senarai')loadAL();if(id==='sesi')renderSesiCfg();if(id==='kelas')renderKelasAdmin()}
 
@@ -1172,28 +1211,33 @@ function renderSesiCfg(){
   const div=g('sesiCfgList');div.innerHTML='';
   KELAS.forEach(k=>{
     const jumlahMurid=murid.filter(m=>m.kelas===k.id).length;
+    const curSesi=sesiConfig[k.id]||'petang';
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--cream);border:1px solid var(--bd);border-radius:10px;margin-bottom:8px';
-    row.innerHTML=`<div><div style="font-size:13px;font-weight:600;color:var(--t1)">${k.panjang}</div><div style="font-size:11px;color:var(--t3);margin-top:2px">${jumlahMurid} murid didaftarkan</div></div>
+    row.innerHTML=`
+      <div><div style="font-size:13px;font-weight:600;color:var(--t1)">${k.panjang}</div>
+      <div style="font-size:11px;color:var(--t3);margin-top:2px">${jumlahMurid} murid didaftarkan</div></div>
       <div style="display:flex;gap:6px">
-        <button id="sbtn-pagi-${k.id}" onclick="setSesiBtn('${k.id}','pagi')" class="sesi-btn ${sesiConfig[k.id]==='pagi'?'sesi-btn-active-pagi':'sesi-btn-inactive'}" style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .15s">Sesi Pagi</button>
-        <button id="sbtn-petang-${k.id}" onclick="setSesiBtn('${k.id}','petang')" class="sesi-btn ${sesiConfig[k.id]==='petang'?'sesi-btn-active-petang':'sesi-btn-inactive'}" style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .15s">Sesi Petang</button>
+        <button id="sbtn-pagi-${k.id}" onclick="setSesiBtn('${k.id}','pagi')" style="${sesiBtn(curSesi==='pagi','pagi')}">Sesi Pagi</button>
+        <button id="sbtn-petang-${k.id}" onclick="setSesiBtn('${k.id}','petang')" style="${sesiBtn(curSesi==='petang','petang')}">Sesi Petang</button>
       </div>`;
     div.appendChild(row);
   });
   renderSesiSummary();
 }
 
+function sesiBtn(active,type){
+  const base='padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid;transition:all .15s;';
+  if(active&&type==='pagi') return base+'background:#4a6a3a;color:#fff;border-color:#3a5a2a;';
+  if(active&&type==='petang') return base+'background:#c04868;color:#fff;border-color:#a83254;';
+  return base+'background:#fff;color:#5a6a52;border-color:#e4ece0;';
+}
+
 function setSesiBtn(kelasId,sesi){
   sesiConfig[kelasId]=sesi;
   ['pagi','petang'].forEach(s=>{
-    const btn=g(`sbtn-${s}-${kelasId}`);if(!btn)return;
-    if(s===sesi){
-      btn.style.background=s==='pagi'?'var(--mg)':'var(--pk)';
-      btn.style.color='#fff';btn.style.borderColor=s==='pagi'?'var(--mg2)':'var(--pk2)';
-    } else {
-      btn.style.background='var(--white)';btn.style.color='var(--t2)';btn.style.borderColor='var(--bd)';
-    }
+    const btn=g(`sbtn-${s}-${kelasId}`);
+    if(btn) btn.style.cssText=sesiBtn(s===sesi,s).replace(/;$/,'');
   });
   renderSesiSummary();
 }
@@ -1227,11 +1271,256 @@ function saveSesiCfg(){
   toast('Tetapan sesi berjaya disimpan');
 }
 
-/* EXPORT */
-function expRMT(){const rm=murid.filter(m=>m.rmt);const rows=[['Bil','Nama Murid','Kelas','Jantina','Status']];rm.forEach((m,i)=>rows.push([i+1,m.nama,KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas,m.jantina==='L'?'Lelaki':'Perempuan','RMT']));xlsx(rows,'Senarai_Murid_RMT')}
-function expMuridKelas(){const rows=[['Bil','Nama Murid','Kelas','Jantina','Status RMT']];[...murid].sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.nama.localeCompare(b.nama)).forEach((m,i)=>rows.push([i+1,m.nama,KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas,m.jantina==='L'?'Lelaki':'Perempuan',m.rmt?'RMT':'Biasa']));xlsx(rows,'Senarai_Murid_Ikut_Kelas')}
-function expRekod(){const rows=[['Tarikh','Hari','Kelas','Jumlah','Hadir','Tidak Hadir','RMT Jumlah','RMT Hadir','RMT T.Hadir','Murid Tidak Hadir','RMT Tidak Hadir']];Object.entries(cache).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([t,rh])=>{Object.values(rh).forEach(r=>rows.push([t,r.hari||'',r.namaKelas,r.jumlah,r.hadir,r.jumlah-r.hadir,r.rmtJumlah,r.rmtHadir,r.rmtJumlah-r.rmtHadir,(r.namaAbsen||[]).map(m=>m.nama).join(', '),(r.namaRmtAbsen||[]).map(m=>m.nama).join(', ')]))});xlsx(rows,'Rekod_Kehadiran')}
-function xlsx(rows,name){if(!window.XLSX){toast('Library Excel belum dimuatkan');return}const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=Array(rows[0].length).fill({wch:26});const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data');XLSX.writeFile(wb,`${name}_${isoToday()}.xlsx`);toast('Fail Excel berjaya dimuat turun')}
+/* ── EXPORT & PRINT ── */
+const CLR={
+  hdr:{fgColor:{rgb:'2a3a22'}},
+  hdrFont:{color:{rgb:'FFFFFF'},bold:true,sz:11},
+  green:{fgColor:{rgb:'e8f2e0'}},
+  greenFont:{color:{rgb:'3a5a2a'},bold:true},
+  pink:{fgColor:{rgb:'fde8ef'}},
+  pinkFont:{color:{rgb:'a83254'},bold:true},
+  alt:{fgColor:{rgb:'f2f8ec'}},
+  altFont:{color:{rgb:'2a3a22'}},
+  white:{fgColor:{rgb:'FFFFFF'}},
+  whiteFont:{color:{rgb:'2a3a22'}},
+  border:{top:{style:'thin',color:{rgb:'d4e8c4'}},bottom:{style:'thin',color:{rgb:'d4e8c4'}},left:{style:'thin',color:{rgb:'d4e8c4'}},right:{style:'thin',color:{rgb:'d4e8c4'}}},
+  borderHdr:{top:{style:'medium',color:{rgb:'3a5a2a'}},bottom:{style:'medium',color:{rgb:'3a5a2a'}},left:{style:'medium',color:{rgb:'3a5a2a'}},right:{style:'medium',color:{rgb:'3a5a2a'}}}
+};
+
+function applyStyles(ws,data,opts={}){
+  if(!ws['!ref'])return;
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let R=range.s.r;R<=range.e.r;R++){
+    for(let C=range.s.c;C<=range.e.c;C++){
+      const addr=XLSX.utils.encode_cell({r:R,c:C});
+      if(!ws[addr])ws[addr]={v:'',t:'s'};
+      const isHdr=R===0;
+      const isAlt=!isHdr&&R%2===0;
+      const isRMT=opts.rmtCol!==undefined&&!isHdr&&ws[addr]&&ws[XLSX.utils.encode_cell({r:R,c:opts.rmtCol})]?.v==='RMT';
+      ws[addr].s={
+        fill:isHdr?CLR.hdr:isRMT?CLR.pink:isAlt?CLR.alt:CLR.white,
+        font:isHdr?CLR.hdrFont:isRMT?CLR.pinkFont:isAlt?{...CLR.altFont}:{...CLR.whiteFont},
+        border:isHdr?CLR.borderHdr:CLR.border,
+        alignment:{vertical:'center',horizontal:isHdr?'center':C===0?'center':'left',wrapText:true}
+      };
+    }
+  }
+  ws['!rows']=[];
+  for(let R=range.s.r;R<=range.e.r;R++)ws['!rows'].push({hpt:R===0?22:18});
+}
+
+function xlsxColor(rows,name,opts={}){
+  if(!window.XLSX){toast('Library Excel belum dimuatkan');return}
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=Array(rows[0].length).fill({wch:26});
+  applyStyles(ws,rows,opts);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Data');
+  // Add metadata sheet
+  const meta=XLSX.utils.aoa_to_sheet([
+    ['Sistem Kehadiran Murid & RMT'],
+    ['SK Felda Inas'],
+    ['Dicetak pada:',new Date().toLocaleString('ms-MY')],
+  ]);
+  XLSX.utils.book_append_sheet(wb,meta,'Info');
+  XLSX.writeFile(wb,`${name}_${isoToday()}.xlsx`);
+  toast('Fail Excel berjaya dimuat turun');
+}
+
+function expRMT(){
+  const rm=murid.filter(m=>m.rmt).sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.nama.localeCompare(b.nama));
+  const rows=[['Bil','Nama Murid','Kelas','Jantina','Status']];
+  rm.forEach((m,i)=>rows.push([i+1,m.nama,KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas,m.jantina==='L'?'Lelaki':'Perempuan','RMT']));
+  xlsxColor(rows,'Senarai_Murid_RMT',{rmtCol:4});
+}
+
+function expMuridKelas(){
+  const rows=[['Bil','Nama Murid','Kelas','Jantina','Status RMT']];
+  [...murid].sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.nama.localeCompare(b.nama))
+    .forEach((m,i)=>rows.push([i+1,m.nama,KELAS.find(k=>k.id===m.kelas)?.panjang||m.kelas,m.jantina==='L'?'Lelaki':'Perempuan',m.rmt?'RMT':'Biasa']));
+  xlsxColor(rows,'Senarai_Murid_Ikut_Kelas',{rmtCol:4});
+}
+
+function expRekod(){
+  const rows=[['Tarikh','Hari','Kelas','Jumlah','Hadir','Tidak Hadir','%Hadir','RMT Jumlah','RMT Hadir','RMT Tidak Hadir','Murid Tidak Hadir','RMT Tidak Hadir']];
+  Object.entries(cache).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([t,rh])=>{
+    Object.values(rh).forEach(r=>rows.push([
+      t,r.hari||'',r.namaKelas,r.jumlah,r.hadir,r.jumlah-r.hadir,
+      r.jumlah>0?Math.round(r.hadir/r.jumlah*100)+'%':'0%',
+      r.rmtJumlah,r.rmtHadir,r.rmtJumlah-r.rmtHadir,
+      (r.namaAbsen||[]).map(m=>m.nama).join(', '),
+      (r.namaRmtAbsen||[]).map(m=>m.nama).join(', ')
+    ]));
+  });
+  xlsxColor(rows,'Rekod_Kehadiran');
+}
+
+/* ── PRINT ── */
+function printRMT(){
+  const bulan=parseInt(g('rB')?.value||new Date().getMonth());
+  const tahun=parseInt(g('rY')?.value||new Date().getFullYear());
+  const bNm=BULAN[bulan];
+  const days=dim(tahun,bulan);
+  const kList=rmtFilt==='semua'?KELAS:KELAS.filter(k=>k.id===rmtFilt);
+  const dh=[];
+  for(let d=1;d<=days;d++){
+    const ds=String(d).padStart(2,'0'),ms=String(bulan+1).padStart(2,'0'),iso=`${tahun}-${ms}-${ds}`;
+    const di=new Date(iso+'T00:00:00').getDay();
+    dh.push({d,iso,di,wk:di===0||di===6});
+  }
+  let tablesHtml='';
+  kList.forEach(k=>{
+    const rm=murid.filter(m=>m.kelas===k.id&&m.rmt);if(!rm.length)return;
+    let thCells=`<th class="pn-col">Nama Murid</th><th class="pk-col">Kelas</th>`;
+    dh.forEach(dh2=>{thCells+=`<th class="${dh2.wk?'we-col':'day-col'}">${dh2.d}<br><span>${HARI_S[dh2.di]}</span></th>`});
+    let rows2='';
+    rm.forEach((m,idx)=>{
+      let cells=`<td class="pn-col">${m.nama}</td><td class="pk-col">${m.kelas}</td>`;
+      dh.forEach(dh2=>{
+        if(dh2.wk){cells+='<td class="we-col"></td>';return}
+        const rec=cache[dh2.iso]&&cache[dh2.iso][k.id];
+        if(!rec){cells+='<td class="empty-col"></td>';return}
+        const isA=rec.absenIds.includes(m.id);
+        cells+=`<td class="${isA?'absen-col':'hadir-col'}">${isA?'✗':'✓'}</td>`;
+      });
+      rows2+=`<tr class="${idx%2===0?'row-even':'row-odd'}">${cells}</tr>`;
+    });
+    tablesHtml+=`<div class="kelas-block">
+      <div class="kelas-hdr">${k.panjang} &nbsp;—&nbsp; ${rm.length} Murid RMT &nbsp;·&nbsp; ${bNm} ${tahun}</div>
+      <div style="overflow-x:auto"><table><thead><tr>${thCells}</tr></thead><tbody>${rows2}</tbody></table></div>
+    </div>`;
+  });
+
+  const pw=window.open('','_blank');
+  pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Rekod RMT — ${bNm} ${tahun}</title>
+  <style>
+    @page{size:landscape;margin:12mm}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:9px;color:#2a3a22;margin:0;padding:0}
+    .header{text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #4a6a3a}
+    .header h1{font-size:16px;font-weight:800;color:#2a3a22;margin:0 0 3px}
+    .header p{font-size:10px;color:#5a6a52;margin:0}
+    .legend{display:flex;gap:16px;margin-bottom:10px;font-size:9px;align-items:center}
+    .leg{display:flex;align-items:center;gap:4px}
+    .leg-box{width:13px;height:13px;border-radius:3px;display:inline-block}
+    .kelas-block{margin-bottom:20px;break-inside:avoid}
+    .kelas-hdr{background:linear-gradient(135deg,#2a3a22,#4a6a3a);color:#fff;padding:7px 12px;font-size:11px;font-weight:700;border-radius:6px 6px 0 0;letter-spacing:.3px}
+    table{border-collapse:collapse;width:100%;font-size:8.5px}
+    th{background:#3a5a2a;color:#fff;padding:5px 2px;text-align:center;font-weight:700;white-space:nowrap;border:1px solid #4a6a3a}
+    th span{display:block;font-size:7px;opacity:.8;font-weight:400}
+    th.pn-col{text-align:left;padding-left:8px;min-width:120px;max-width:160px;position:sticky;left:0}
+    th.pk-col{min-width:36px;background:#4a6a3a}
+    th.day-col{min-width:18px;width:18px}
+    th.we-col{min-width:18px;width:18px;background:#1a2a12}
+    td{padding:3px 2px;text-align:center;border:1px solid #d4e8c4;vertical-align:middle}
+    td.pn-col{text-align:left;padding-left:8px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    td.pk-col{font-size:8px;color:#5a6a52;border-right:2px solid #d4e8c4}
+    .row-even td{background:#f2f8ec}
+    .row-odd td{background:#ffffff}
+    .hadir-col{background:#4a8a3a!important;color:#fff!important;font-weight:700;font-size:9px}
+    .absen-col{background:#fde8ef!important;color:#c04868!important;font-weight:700;font-size:9px;border:1px solid #f8d0dc!important}
+    .we-col{background:#e8e4de!important;color:#888!important}
+    .empty-col{background:#f5f5f0!important}
+    .footer{text-align:center;margin-top:14px;font-size:8px;color:#8a9a82;border-top:1px solid #d4e8c4;padding-top:8px}
+  </style></head><body>
+  <div class="header"><h1>Rekod Kehadiran Murid RMT</h1><p>SK Felda Inas &nbsp;·&nbsp; ${bNm} ${tahun} &nbsp;·&nbsp; Dicetak: ${new Date().toLocaleString('ms-MY')}</p></div>
+  <div class="legend">
+    <div class="leg"><div class="leg-box" style="background:#4a8a3a"></div>Hadir</div>
+    <div class="leg"><div class="leg-box" style="background:#fde8ef;border:1.5px solid #c04868"></div>Tidak Hadir</div>
+    <div class="leg"><div class="leg-box" style="background:#e8e4de"></div>Cuti/Hujung Minggu</div>
+    <div class="leg"><div class="leg-box" style="background:#f5f5f0;border:1px dashed #ccc"></div>Tiada Data</div>
+  </div>
+  ${tablesHtml}
+  <div class="footer">Sistem Kehadiran Murid &amp; RMT — SK Felda Inas &nbsp;·&nbsp; Dijana secara automatik</div>
+  </body></html>`);
+  pw.document.close();
+  setTimeout(()=>pw.print(),600);
+}
+
+function printKehadiran(){
+  const tarikh=g('dDate')?.value||isoToday();
+  const rh=cache[tarikh]||{};
+  const list=Object.values(rh);
+  if(!list.length){toast('Tiada data kehadiran untuk dicetak pada tarikh ini');return}
+  let rowsHtml='';
+  let bil=1;
+  KELAS.forEach(k=>{
+    const r=rh[k.id];
+    if(!r)return;
+    const pct=Math.round(r.hadir/r.jumlah*100);
+    const clr=pct>=90?'#2d7a2d':pct>=75?'#4a7ab0':'#c04868';
+    rowsHtml+=`<tr class="${bil%2===0?'even':'odd'}">
+      <td class="c1">${bil++}</td>
+      <td class="c2">${r.namaKelas}</td>
+      <td class="cn">${r.jumlah}</td>
+      <td class="cn" style="background:#e8f2e0;font-weight:700;color:#3a5a2a">${r.hadir}</td>
+      <td class="cn" style="background:#fde8ef;font-weight:700;color:#c04868">${r.jumlah-r.hadir}</td>
+      <td class="cn" style="font-weight:800;color:${clr}">${pct}%</td>
+      <td class="cn" style="background:#e8f2e0;color:#3a5a2a;font-weight:700">${r.rmtHadir}</td>
+      <td class="cn" style="background:#fde8ef;color:#c04868;font-weight:700">${r.rmtJumlah-r.rmtHadir}</td>
+      <td class="cw">${(r.namaAbsen||[]).map(m=>m.nama).join(', ')||'—'}</td>
+    </tr>`;
+  });
+  const tM=list.reduce((a,r)=>a+r.jumlah,0);
+  const tH=list.reduce((a,r)=>a+r.hadir,0);
+  const tR=list.reduce((a,r)=>a+r.rmtHadir,0);
+  const pw=window.open('','_blank');
+  pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Laporan Kehadiran — ${tarikh}</title>
+  <style>
+    @page{size:landscape;margin:12mm}
+    body{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:#2a3a22;margin:0}
+    .header{text-align:center;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #4a6a3a}
+    .header h1{font-size:18px;font-weight:800;color:#2a3a22;margin:0 0 4px}
+    .header p{font-size:11px;color:#5a6a52;margin:0}
+    .summary{display:flex;gap:12px;margin-bottom:16px}
+    .sum-box{flex:1;border-radius:8px;padding:10px 12px;text-align:center}
+    .sum-num{font-size:22px;font-weight:800}
+    .sum-lbl{font-size:9px;color:#5a6a52;margin-top:2px}
+    table{border-collapse:collapse;width:100%}
+    th{background:#2a3a22;color:#fff;padding:8px 6px;text-align:center;font-size:10px;font-weight:700;border:1px solid #3a5a2a}
+    th.cl{text-align:left;padding-left:10px}
+    th.cw{text-align:left;padding-left:8px;min-width:160px}
+    td{padding:6px 5px;border:1px solid #d4e8c4;text-align:center;vertical-align:middle;font-size:10px}
+    td.c1{color:#8a9a82;font-size:9px}
+    td.c2{text-align:left;padding-left:10px;font-weight:700}
+    td.cn{min-width:52px}
+    td.cw{text-align:left;padding-left:8px;font-size:9px;color:#5a6a52}
+    .even td{background:#f2f8ec}
+    .odd td{background:#ffffff}
+    .total-row td{background:#2a3a22!important;color:#fff!important;font-weight:700}
+    .footer{text-align:center;margin-top:14px;font-size:8px;color:#8a9a82;border-top:1px solid #d4e8c4;padding-top:8px}
+  </style></head><body>
+  <div class="header"><h1>Laporan Kehadiran Murid Harian</h1>
+  <p>SK Felda Inas &nbsp;·&nbsp; ${fmtLong(tarikh)} &nbsp;·&nbsp; Dicetak: ${new Date().toLocaleString('ms-MY')}</p></div>
+  <div class="summary">
+    <div class="sum-box" style="background:#e8f2e0;border:1px solid #b8d8a0"><div class="sum-num" style="color:#2d7a2d">${tM}</div><div class="sum-lbl">Jumlah Murid</div></div>
+    <div class="sum-box" style="background:#e8f2e0;border:1px solid #b8d8a0"><div class="sum-num" style="color:#2d7a2d">${tH}</div><div class="sum-lbl">Hadir</div></div>
+    <div class="sum-box" style="background:#fde8ef;border:1px solid #f8d0dc"><div class="sum-num" style="color:#c04868">${tM-tH}</div><div class="sum-lbl">Tidak Hadir</div></div>
+    <div class="sum-box" style="background:#e8f2fc;border:1px solid #c0d8f0"><div class="sum-num" style="color:#4a7ab0">${tM>0?Math.round(tH/tM*100)+'%':'—'}</div><div class="sum-lbl">% Kehadiran</div></div>
+    <div class="sum-box" style="background:#fde8ef;border:1px solid #f8d0dc"><div class="sum-num" style="color:#c04868">${tR}</div><div class="sum-lbl">RMT Hadir</div></div>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:32px">Bil</th><th class="cl">Kelas</th>
+      <th class="cn">Jumlah</th><th class="cn">Hadir</th><th class="cn">T.Hadir</th>
+      <th class="cn">%</th><th class="cn">RMT Hadir</th><th class="cn">RMT T.Hadir</th>
+      <th class="cw">Murid Tidak Hadir</th>
+    </tr></thead>
+    <tbody>${rowsHtml}
+    <tr class="total-row">
+      <td colspan="2">JUMLAH KESELURUHAN</td>
+      <td>${tM}</td><td>${tH}</td><td>${tM-tH}</td>
+      <td>${tM>0?Math.round(tH/tM*100)+'%':'—'}</td><td>${tR}</td><td>${list.reduce((a,r)=>a+r.rmtJumlah-r.rmtHadir,0)}</td>
+      <td></td>
+    </tr></tbody>
+  </table>
+  <div class="footer">Sistem Kehadiran Murid &amp; RMT — SK Felda Inas &nbsp;·&nbsp; Dijana secara automatik</div>
+  </body></html>`);
+  pw.document.close();
+  setTimeout(()=>pw.print(),600);
+}
+
 function toast(msg){const t=g('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200)}
 </script>
 </body>
