@@ -1055,29 +1055,45 @@ function renderRMT(){
   }
   const days=dim(tahun,bulan),kList=rmtFilt==='semua'?KELAS:KELAS.filter(k=>k.id===rmtFilt);
   const dh=[];
-  for(let d=1;d<=days;d++){const ds=String(d).padStart(2,'0'),ms=String(bulan+1).padStart(2,'0'),iso=`${tahun}-${ms}-${ds}`,di=new Date(iso+'T00:00:00').getDay();dh.push({d,iso,di,wk:di===0||di===6})}
+  for(let d=1;d<=days;d++){
+    const ds=String(d).padStart(2,'0'),ms=String(bulan+1).padStart(2,'0'),iso=tahun+'-'+ms+'-'+ds,di=new Date(iso+'T00:00:00').getDay();
+    dh.push({d,iso,di,wk:di===0||di===6});
+  }
   let tR=0,tH=0,tA=0;const area=g('rA');area.innerHTML='';
   kList.forEach(k=>{
     const rm=murid.filter(m=>m.kelas===k.id&&m.rmt);if(!rm.length)return;tR+=rm.length;
     const wrap=document.createElement('div');wrap.className='rtw';
-    let th=`<th class="cn">Nama Murid</th><th class="ck">Kelas</th>`;
-    dh.forEach(d=>{th+=`<th style="min-width:22px${d.wk?';background:#1a2a12':''}"${d.wk?'':!isSchoolDay(d.iso)?' style="min-width:22px;background:#2a1a1a"':''}>
-      <div class="dn">${d.d}</div><div class="dl">${HARI_S[d.di]}</div></th>`});
+    let th='<th class="cn">Nama Murid</th><th class="ck">Kelas</th>';
+    dh.forEach(d=>{
+      const adaRekod=!!(cache[d.iso]&&cache[d.iso][k.id]);
+      let hdrBg=d.wk?(adaRekod?';background:#2d5a1e':';background:#1a2a12'):'';
+      th+='<th style="min-width:22px'+hdrBg+'"><div class="dn">'+d.d+'</div><div class="dl">'+HARI_S[d.di]+(d.wk&&adaRekod?'*':'')+'</div></th>';
+    });
     let rows='';
     rm.forEach(m=>{
-      let cells=`<td class="cn" title="${m.nama}">${m.nama}</td><td class="ck">${m.kelas}</td>`;
+      let cells='<td class="cn" title="'+m.nama+'">'+m.nama+'</td><td class="ck">'+m.kelas+'</td>';
       dh.forEach(d=>{
-        if(d.wk){cells+='<td><div class="cw2"></div></td>';return}
         const rec=cache[d.iso]&&cache[d.iso][k.id];
-        if(!rec){cells+='<td><div class="ce"></div></td>';return}
-        const isA=rec.absenIds.includes(m.id);
-        if(!isA){tH++;cells+=`<td><div class="ch"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,8 8.5,2" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></td>`}
-        else{tA++;cells+=`<td><div class="ca"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><line x1="2" y1="2" x2="8" y2="8" stroke="#d45a78" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="2" x2="2" y2="8" stroke="#d45a78" stroke-width="1.8" stroke-linecap="round"/></svg></div></td>`}
+        if(rec){
+          const isA=rec.absenIds.includes(m.id);
+          if(!isA){
+            tH++;
+            const ganti=d.wk;
+            cells+='<td title="'+(ganti?'Sekolah Ganti':'Hadir')+'"><div class="ch" style="'+(ganti?'background:#e67e22':'')+'" ><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,8 8.5,2" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div></td>';
+          } else {
+            tA++;
+            cells+='<td title="Tidak Hadir"><div class="ca"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><line x1="2" y1="2" x2="8" y2="8" stroke="#d45a78" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="2" x2="2" y2="8" stroke="#d45a78" stroke-width="1.8" stroke-linecap="round"/></svg></div></td>';
+          }
+        } else if(d.wk){
+          cells+='<td title="Hujung Minggu"><div class="cw2"></div></td>';
+        } else {
+          cells+='<td title="Tiada Data"><div class="ce"></div></td>';
+        }
       });
-      rows+=`<tr>${cells}</tr>`;
+      rows+='<tr>'+cells+'</tr>';
     });
-    wrap.innerHTML=`<div class="rtkh"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>${k.panjang} — ${rm.length} murid RMT</div>
-      <div style="overflow-x:auto"><table class="rt"><thead><tr>${th}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    const adaGanti=dh.some(d=>d.wk&&cache[d.iso]&&cache[d.iso][k.id]);
+    wrap.innerHTML='<div class="rtkh"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>'+k.panjang+' — '+rm.length+' murid RMT'+(adaGanti?'&nbsp;<span style="font-size:10px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px">* Sekolah Ganti</span>':'')+'</div><div style="overflow-x:auto"><table class="rt"><thead><tr>'+th+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
     area.appendChild(wrap);
   });
   const tot=tH+tA;
