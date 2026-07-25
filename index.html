@@ -1411,7 +1411,7 @@ function _renderRMTTable(bulan,tahun){
     dh.forEach(d=>{
       const adaRekod=!!(cache[d.iso]&&cache[d.iso][k.id]);
       let hdrBg=d.wk?(adaRekod?';background:#2d5a1e':';background:#1a2a12'):'';
-      th+='<th style="min-width:22px'+hdrBg+'"><div class="dn">'+d.d+'</div><div class="dl">'+HARI_S[d.di]+(d.wk&&adaRekod?'*':'')+'</div></th>';
+      th+='<th style="min-width:22px'+hdrBg+'"><div class="dn">'+d.d+'</div><div class="dl">'+HARI_S[d.di]+'</div></th>';
     });
     let rows='';
     rm.forEach(m=>{
@@ -2219,7 +2219,7 @@ function expRekodRMT(){
         const rec=cache[d.iso]&&cache[d.iso][k.id];
         if(rec){
           const isA=rec.absenIds.includes(m.id);
-          if(!isA){row.push(d.wk?'✓*':'✓');jmlHadir++;}
+          if(!isA){row.push('✓');jmlHadir++;}
           else row.push('✗');
         } else if(d.wk){
           row.push('');  // cuti biasa
@@ -2279,8 +2279,8 @@ function expRekodRMT(){
           font={color:{rgb:isGanti?'a0e070':isWkCol?'667766':'FFFFFF'},bold:true,sz:8};border=bd;
         } else if(isJumlah){
           fill={fgColor:{rgb:'3a5a2a'}};font={color:{rgb:'FFFFFF'},bold:true};border=bdHdr;
-        } else if(val==='✓'||val==='✓*'){
-          fill={fgColor:{rgb:val==='✓*'?'e67e22':'4a8a3a'}};font={color:{rgb:'FFFFFF'},bold:true};border=bd;
+        } else if(val==='✓'){
+          fill={fgColor:{rgb:isGanti?'e67e22':'4a8a3a'}};font={color:{rgb:'FFFFFF'},bold:true};border=bd;
         } else if(val==='✗'){
           fill={fgColor:{rgb:'fde8ef'}};font={color:{rgb:'c04868'},bold:true};border={...bd,top:{style:'thin',color:{rgb:'f8d0dc'}},bottom:{style:'thin',color:{rgb:'f8d0dc'}}};
         } else if(isWkCol&&!adaRekod){
@@ -2372,7 +2372,7 @@ function printRMT(){
       const adaRekod=!!(cache[dh2.iso]&&cache[dh2.iso][k.id]);
       // Header: weekend+ada rekod=hijau(sekolah ganti), weekend sahaja=hitam, biasa=normal
       const cls=dh2.wk?(adaRekod?'ganti-col':'we-col'):'day-col';
-      thCells+=`<th class="${cls}">${dh2.d}<br><span>${HARI_S[dh2.di]}${dh2.wk&&adaRekod?'*':''}</span></th>`;
+      thCells+=`<th class="${cls}">${dh2.d}<br><span>${HARI_S[dh2.di]}</span></th>`;
     });
     let rows2='';
     const adaGanti=dh.some(d=>d.wk&&cache[d.iso]&&cache[d.iso][k.id]);
@@ -2384,7 +2384,7 @@ function printRMT(){
           // Ada rekod — tunjuk status kehadiran (termasuk sekolah ganti/cuti khas)
           const isA=rec.absenIds.includes(m.id);
           if(!isA){
-            cells+=`<td class="${dh2.wk?'ganti-data-col':'hadir-col'}">${dh2.wk?'✓*':'✓'}</td>`;
+            cells+=`<td class="${dh2.wk?'ganti-data-col':'hadir-col'}">✓</td>`;
           } else {
             cells+=`<td class="absen-col">✗</td>`;
           }
