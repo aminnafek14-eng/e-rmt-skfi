@@ -842,13 +842,20 @@ function startLiveSync(){
       if(!cache[r.tarikh])cache[r.tarikh]={};
       cache[r.tarikh][r.kelas]=r.data;
       saveCache();buildKelas();
-      showSyncToast('Kehadiran dikemas kini oleh pengguna lain');
+      // Auto refresh dashboard jika terbuka pada tarikh tersebut
+      if(g('page-dashboard').classList.contains('active')&&g('dDate')?.value===r.tarikh){
+        renderDashLive();
+      }
+      showSyncToast('Kehadiran '+r.kelas+' dikemas kini');
     })
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'kehadiran'},payload=>{
       const r=payload.new;
       if(!cache[r.tarikh])cache[r.tarikh]={};
       cache[r.tarikh][r.kelas]=r.data;
       saveCache();buildKelas();
+      if(g('page-dashboard').classList.contains('active')&&g('dDate')?.value===r.tarikh){
+        renderDashLive();
+      }
     })
     // Sync config kelas & sesi
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'config'},payload=>applyConfigChange(payload.new))
@@ -1016,7 +1023,12 @@ function showPg(id,btn){
   document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   g('page-'+id).classList.add('active');if(btn)btn.classList.add('active');
   g('pgT').textContent=pgTitles[id]||id;
-  if(id==='dashboard')renderDash();
+  if(id==='dashboard'){
+    // Auto set tarikh hari ini dan terus render
+    const dd=g('dDate');
+    if(dd&&!dd.value)dd.value=isoToday();
+    renderDash();
+  }
   if(id==='panel-rmt')renderRMT();
   if(id==='rekod')renderRekod();
   if(id==='admin')loadAL();
@@ -1088,18 +1100,79 @@ function buildRec(){
   const j=mk.length,rmtJ=mk.filter(m=>m.rmt).length,rmtA=mk.filter(m=>m.rmt&&absen.has(m.id)).length;
   const namaA=mk.filter(m=>absen.has(m.id)).map(m=>({id:m.id,nama:m.nama,rmt:m.rmt}));
   const rmtNA=mk.filter(m=>m.rmt&&absen.has(m.id)).map(m=>({id:m.id,nama:m.nama}));
-  return{tarikh:today,hari:HARI[new Date().getDay()],kelas:kelasAktif,namaKelas:KELAS.find(k=>k.id===kelasAktif).panjang,jumlah:j,hadir:j-absen.size,rmtHadir:rmtJ-rmtA,rmtJumlah:rmtJ,absenIds:[...absen],namaAbsen:namaA,namaRmtAbsen:rmtNA,masa:new Date().toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})};
+  return{tarikh:today,hari:HARI[new Date().getDay()],kelas:kelasAktif,namaKelas:KELAS.find(k=>k.id===kelasAktif)?.panjang||kelasAktif,jumlah:j,hadir:j-absen.size,rmtHadir:rmtJ-rmtA,rmtJumlah:rmtJ,absenIds:[...absen],namaAbsen:namaA,namaRmtAbsen:rmtNA,masa:new Date().toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})};
 }
-async function saveRec(rec){
-  if(!cache[rec.tarikh])cache[rec.tarikh]={};cache[rec.tarikh][kelasAktif]=rec;saveCache();
-  if(sb&&!SB_URL.includes('YOUR')){try{await sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:kelasAktif,data:rec},{onConflict:'tarikh,kelas'})}catch(e){}}
-  buildKelas();updateHantarBtn();
+
+function saveRec(rec){
+  // 1. Simpan ke cache tempatan & UI update SEKARANG (tanpa tunggu Supabase)
+  if(!cache[rec.tarikh])cache[rec.tarikh]={};
+  cache[rec.tarikh][kelasAktif]=rec;
+  saveCache();
+  buildKelas();
+  updateHantarBtn();
+  // Auto refresh dashboard jika terbuka pada tarikh yang sama
+  if(g('page-dashboard').classList.contains('active')){
+    const dashDate=g('dDate')?.value;
+    if(dashDate===rec.tarikh) renderDashLive();
+  }
+  // 2. Hantar ke Supabase di background (tidak tunggu)
+  if(sb&&!SB_URL.includes('YOUR')){
+    sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:kelasAktif,data:rec},{onConflict:'tarikh,kelas'})
+      .then(()=>{})
+      .catch(e=>console.warn('Supabase kehadiran save error:',e));
+  }
 }
-async function hantarK(){if(!kelasAktif)return;const rec=buildRec();await saveRec(rec);toast(`Kehadiran ${rec.namaKelas} berjaya dihantar`)}
-async function updateK(){if(!kelasAktif)return;const rec=buildRec();await saveRec(rec);toast(`Laporan ${rec.namaKelas} berjaya dikemaskini`)}
+
+function hantarK(){
+  if(!kelasAktif)return;
+  const rec=buildRec();
+  saveRec(rec);
+  toast(`✓ Kehadiran ${rec.namaKelas} berjaya dihantar`);
+}
+function updateK(){
+  if(!kelasAktif)return;
+  const rec=buildRec();
+  saveRec(rec);
+  toast(`✓ Laporan ${rec.namaKelas} berjaya dikemaskini`);
+}
 
 /* DASHBOARD */
 let pieChart1=null,pieChart2=null;
+
+// Live update dashboard stats + carta pie tanpa rebuild HTML penuh
+function renderDashLive(){
+  const t=g('dDate')?.value;
+  if(!t||!g('dCont'))return;
+  const rh=cache[t]||{};
+  const list=Object.values(rh),n=list.length;
+  const tM=list.reduce((a,r)=>a+r.jumlah,0),tH=list.reduce((a,r)=>a+r.hadir,0),tR=list.reduce((a,r)=>a+r.rmtHadir,0);
+  // Update stat tiles jika ada
+  const snEls=g('dCont').querySelectorAll('.sn');
+  if(snEls.length>=4){snEls[0].textContent=tM;snEls[1].textContent=tH;snEls[2].textContent=tR;snEls[3].textContent=tM-tH}
+  // Update banner kelas count
+  const dbSub=g('dCont').querySelector('.db-sub');
+  if(dbSub) dbSub.textContent=n===0?'Tiada kelas diisi':n<KELAS.length?`${n} daripada ${KELAS.length} kelas diisi`:`Semua ${KELAS.length} kelas telah diisi`;
+  const tagEl=g('dCont').querySelector('.tag');
+  if(tagEl){tagEl.textContent=`${n}/${KELAS.length} kelas`;tagEl.className=n===KELAS.length?'tag tag-g':'tag tag-a'}
+  // Rebuild carta pai sahaja
+  const kPagi=KELAS.filter(k=>k.sesi==='pagi');
+  const kPetang=KELAS.filter(k=>k.sesi==='petang');
+  setTimeout(()=>{
+    buildPie('pieP','piePnum','piePleg',kPagi,rh,'pagi');
+    buildPie('pieTg','pieTnum','pieTleg',kPetang,rh,'petang');
+  },10);
+  // Update butiran kelas jika accordion sudah terbuka
+  KELAS.forEach(k=>{
+    const body=g('kd'+k.id);
+    if(body&&body.classList.contains('open')){
+      const r=rh[k.id];
+      if(r){
+        const snList=body.querySelectorAll('.sn');
+        if(snList.length>=4){snList[0].textContent=r.hadir;snList[1].textContent=r.jumlah-r.hadir;snList[2].textContent=r.rmtHadir;snList[3].textContent=r.rmtJumlah-r.rmtHadir}
+      }
+    }
+  });
+}
 async function renderDash(){
   const t=g('dDate').value,div=g('dCont');
   if(!t){div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="empty-t">Pilih tarikh untuk lihat dashboard</div></div>';return}
@@ -1364,20 +1437,30 @@ async function addMurid(){
   const nm=g('tNm').value.trim(),kl=g('tKl').value,jt=g('tJt').value,rmt=g('tRmt').checked;
   if(!nm){toast('Sila masukkan nama murid');return}
   const obj={nama:nm,kelas:kl,jantina:jt,rmt};
+  // Tambah optimistic dengan ID sementara
+  const tempId='tmp_'+Date.now();
+  const tempMurid={...obj,id:tempId};
+  murid.push(tempMurid);
+  buildKelas();if(kelasAktif===kl)renderMurid();
+  g('tNm').value='';g('tRmt').checked=false;
+  toast(`✓ ${nm} berjaya ditambah`);
+  // Sync ke Supabase di background, tukar ID sementara kepada ID sebenar
   if(sb&&!SB_URL.includes('YOUR')){
     try{
       const{data,error}=await sb.from('murid').insert([obj]).select();
       if(!error&&data&&data[0]){
-        murid.push(data[0]);
+        // Ganti ID sementara dengan ID sebenar dari Supabase
+        const idx=murid.findIndex(m=>m.id===tempId);
+        if(idx>=0)murid[idx]=data[0];
         localStorage.setItem('muridCache',JSON.stringify(murid));
-        g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);return;
+        return;
       }
     }catch(e){console.warn(e)}
   }
-  const newM={...obj,id:Date.now()};
-  murid.push(newM);
+  // Fallback: guna ID sementara (offline mode)
+  const idx=murid.findIndex(m=>m.id===tempId);
+  if(idx>=0)murid[idx]={...obj,id:Date.now()};
   localStorage.setItem('muridCache',JSON.stringify(murid));
-  g('tNm').value='';g('tRmt').checked=false;buildKelas();toast(`${nm} berjaya ditambah`);
 }
 async function impPukal(){
   const raw=g('pDat').value.trim(),okl=g('pKl').value;
