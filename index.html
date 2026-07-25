@@ -414,7 +414,8 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
   <div class="sr" id="rSt"></div>
   <div id="rA"></div>
   <div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">
-    <button class="btnexp" onclick="expRMT()">Export RMT ke Excel</button>
+    <button class="btnexp" onclick="expRMT()">Export Senarai Murid RMT</button>
+    <button class="btnexp" onclick="expRekodRMT()" style="background:linear-gradient(135deg,#2d7a2d,#1a5a1a)">Export Rekod Bulanan RMT (Excel)</button>
     <button class="btnexp" onclick="printRMT()" style="background:linear-gradient(135deg,#4a7ab0,#2a5a90)">Print Rekod RMT</button>
   </div>
 </div>
@@ -610,7 +611,8 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
       <div class="clbl">Export &amp; Print Data</div>
       <div class="eg">
         <div class="ec" onclick="expMuridKelas()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="ec-t">Senarai Murid Ikut Kelas</div><div class="ec-d">Semua murid dalam Excel berwarna</div><div class="ec-btn">Export Excel</div></div>
-        <div class="ec" onclick="expRMT()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="ec-t">Data Murid RMT</div><div class="ec-d">Senarai murid RMT dalam Excel berwarna</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expRMT()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="ec-t">Senarai Murid RMT</div><div class="ec-d">Senarai nama murid RMT beserta kelas</div><div class="ec-btn">Export Excel</div></div>
+        <div class="ec" onclick="expRekodRMT()" style="border-color:#2d7a2d"><div class="ec-ic" style="background:#e8f5e9"><svg viewBox="0 0 24 24" fill="none" stroke="#2d7a2d" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="ec-t">Rekod Bulanan RMT</div><div class="ec-d">Jadual kehadiran bulanan murid RMT dalam Excel berwarna (ikut bulan dipilih dalam Panel RMT)</div><div class="ec-btn" style="background:#e8f5e9;color:#2d7a2d">Export Excel</div></div>
         <div class="ec" onclick="expRekod()"><div class="ec-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div><div class="ec-t">Rekod Kehadiran</div><div class="ec-d">Semua rekod kehadiran dalam Excel berwarna</div><div class="ec-btn">Export Excel</div></div>
         <div class="ec" onclick="printKehadiran()" style="border-color:var(--bl)"><div class="ec-ic" style="background:var(--blp)"><svg viewBox="0 0 24 24" fill="none" stroke="#4a7ab0" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div><div class="ec-t">Print Laporan Kehadiran</div><div class="ec-d">Cetak laporan harian dalam format landscape berwarna</div><div class="ec-btn" style="background:var(--blp);color:#4a7ab0">Print / PDF</div></div>
         <div class="ec" onclick="printRMT()" style="border-color:var(--pk2)"><div class="ec-ic" style="background:var(--pkp)"><svg viewBox="0 0 24 24" fill="none" stroke="#c04868" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div><div class="ec-t">Print Rekod RMT</div><div class="ec-d">Cetak jadual bulanan RMT dalam format landscape berwarna</div><div class="ec-btn" style="background:var(--pkp);color:var(--pk2)">Print / PDF</div></div>
@@ -1828,6 +1830,154 @@ function expRMT(){
   xlsxColor(rows,'Senarai_Murid_RMT',{rmtCol:4});
 }
 
+function expRekodRMT(){
+  if(!window.XLSX){toast('Library Excel belum dimuatkan');return}
+  const bulan=parseInt(g('rB')?.value||new Date().getMonth());
+  const tahun=parseInt(g('rY')?.value||new Date().getFullYear());
+  const bNm=BULAN[bulan];
+  const days=dim(tahun,bulan);
+  const kList=rmtFilt==='semua'?KELAS:KELAS.filter(k=>k.id===rmtFilt);
+
+  // Build day headers
+  const dh=[];
+  for(let d=1;d<=days;d++){
+    const ds=String(d).padStart(2,'0'),ms=String(bulan+1).padStart(2,'0'),iso=`${tahun}-${ms}-${ds}`;
+    const di=new Date(iso+'T00:00:00').getDay();
+    dh.push({d,iso,di,wk:di===0||di===6,hs:HARI_S[di]});
+  }
+
+  const wb=XLSX.utils.book_new();
+
+  kList.forEach(k=>{
+    const rm=murid.filter(m=>m.kelas===k.id&&m.rmt);
+    if(!rm.length)return;
+
+    // Header row 1: title
+    const titleRow=[`Rekod Kehadiran RMT — ${k.panjang} — ${bNm} ${tahun}`];
+    // Header row 2: columns
+    const hdrRow=['Bil','Nama Murid','Kelas',...dh.map(d=>d.d),'Jumlah Hadir','% Hadir'];
+    // Header row 3: day names
+    const hdrDay=['','','Hari',...dh.map(d=>d.hs),'',''];
+
+    const dataRows=[];
+    rm.forEach((m,idx)=>{
+      const row=[idx+1,m.nama,m.kelas];
+      let jmlHadir=0;
+      dh.forEach(d=>{
+        const rec=cache[d.iso]&&cache[d.iso][k.id];
+        if(rec){
+          const isA=rec.absenIds.includes(m.id);
+          if(!isA){row.push(d.wk?'✓*':'✓');jmlHadir++;}
+          else row.push('✗');
+        } else if(d.wk){
+          row.push('');  // cuti biasa
+        } else {
+          row.push(''); // tiada data
+        }
+      });
+      const totalHariDiisi=dh.filter(d=>!!(cache[d.iso]&&cache[d.iso][k.id])).length;
+      row.push(jmlHadir);
+      row.push(totalHariDiisi>0?Math.round(jmlHadir/totalHariDiisi*100)+'%':'—');
+      dataRows.push(row);
+    });
+
+    // Jumlah row
+    const jumlahRow=['','JUMLAH HADIR',''];
+    dh.forEach(d=>{
+      const rec=cache[d.iso]&&cache[d.iso][k.id];
+      if(rec) jumlahRow.push(rec.rmtHadir);
+      else if(d.wk) jumlahRow.push('');
+      else jumlahRow.push('');
+    });
+    jumlahRow.push('');jumlahRow.push('');
+
+    const allRows=[hdrRow,hdrDay,...dataRows,jumlahRow];
+    const ws=XLSX.utils.aoa_to_sheet(allRows);
+
+    // Column widths
+    ws['!cols']=[{wch:5},{wch:32},{wch:10},...dh.map(()=>({wch:4})),{wch:12},{wch:8}];
+
+    // Apply styles
+    const range=XLSX.utils.decode_range(ws['!ref']);
+    const nFixedCols=3; // Bil, Nama, Kelas
+
+    for(let R=range.s.r;R<=range.e.r;R++){
+      for(let C=range.s.c;C<=range.e.c;C++){
+        const addr=XLSX.utils.encode_cell({r:R,c:C});
+        if(!ws[addr])ws[addr]={v:'',t:'s'};
+        const val=ws[addr].v;
+        const isHdrRow=R===0;
+        const isDayRow=R===1;
+        const isJumlah=R===range.e.r;
+        const isAlt=!isHdrRow&&!isDayRow&&!isJumlah&&R%2===1;
+        const dayIdx=C-nFixedCols;
+        const dayInfo=dayIdx>=0&&dayIdx<dh.length?dh[dayIdx]:null;
+        const isWkCol=dayInfo&&dayInfo.wk;
+        const adaRekod=dayInfo&&!!(cache[dayInfo.iso]&&cache[dayInfo.iso][k.id]);
+        const isGanti=isWkCol&&adaRekod;
+
+        let fill,font,border;
+        const bd={top:{style:'thin',color:{rgb:'d4e8c4'}},bottom:{style:'thin',color:{rgb:'d4e8c4'}},left:{style:'thin',color:{rgb:'d4e8c4'}},right:{style:'thin',color:{rgb:'d4e8c4'}}};
+        const bdHdr={top:{style:'medium',color:{rgb:'2a3a22'}},bottom:{style:'medium',color:{rgb:'2a3a22'}},left:{style:'medium',color:{rgb:'2a3a22'}},right:{style:'medium',color:{rgb:'2a3a22'}}};
+
+        if(isHdrRow){
+          fill={fgColor:{rgb:'2a3a22'}};font={color:{rgb:'FFFFFF'},bold:true,sz:10};border=bdHdr;
+        } else if(isDayRow){
+          fill={fgColor:{rgb:isGanti?'2d5a1e':isWkCol?'1a2a12':'3a5a2a'}};
+          font={color:{rgb:isGanti?'a0e070':isWkCol?'667766':'FFFFFF'},bold:true,sz:8};border=bd;
+        } else if(isJumlah){
+          fill={fgColor:{rgb:'3a5a2a'}};font={color:{rgb:'FFFFFF'},bold:true};border=bdHdr;
+        } else if(val==='✓'||val==='✓*'){
+          fill={fgColor:{rgb:val==='✓*'?'e67e22':'4a8a3a'}};font={color:{rgb:'FFFFFF'},bold:true};border=bd;
+        } else if(val==='✗'){
+          fill={fgColor:{rgb:'fde8ef'}};font={color:{rgb:'c04868'},bold:true};border={...bd,top:{style:'thin',color:{rgb:'f8d0dc'}},bottom:{style:'thin',color:{rgb:'f8d0dc'}}};
+        } else if(isWkCol&&!adaRekod){
+          fill={fgColor:{rgb:'e8e4de'}};font={color:{rgb:'999999'}};border=bd;
+        } else if(isAlt){
+          fill={fgColor:{rgb:'f2f8ec'}};font={color:{rgb:'2a3a22'}};border=bd;
+        } else {
+          fill={fgColor:{rgb:'FFFFFF'}};font={color:{rgb:'2a3a22'}};border=bd;
+        }
+
+        ws[addr].s={fill,font,border,alignment:{horizontal:'center',vertical:'center'}};
+      }
+    }
+
+    // Row heights
+    ws['!rows']=[{hpt:20},{hpt:16},...dataRows.map(()=>({hpt:16})),{hpt:18}];
+    // Freeze first 3 columns
+    ws['!freeze']={xSplit:3,ySplit:2};
+
+    // Sheet name: max 31 chars
+    const sheetName=k.id+'_'+k.nama.replace(/[^A-Za-z0-9]/g,'').substring(0,20);
+    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  });
+
+  // Summary sheet
+  const sumRows=[['Bulan','Kelas','Jumlah Murid RMT','Jumlah Hari Diisi','Jumlah Hadir','Jumlah Tidak Hadir','% Kehadiran']];
+  kList.forEach(k=>{
+    const rm=murid.filter(m=>m.kelas===k.id&&m.rmt);if(!rm.length)return;
+    const hariDiisi=dh.filter(d=>!!(cache[d.iso]&&cache[d.iso][k.id])).length;
+    let totH=0,totA=0;
+    rm.forEach(m=>{
+      dh.forEach(d=>{
+        const rec=cache[d.iso]&&cache[d.iso][k.id];
+        if(rec){if(rec.absenIds.includes(m.id))totA++;else totH++;}
+      });
+    });
+    const tot=totH+totA;
+    sumRows.push([`${bNm} ${tahun}`,k.panjang,rm.length,hariDiisi,totH,totA,tot>0?Math.round(totH/tot*100)+'%':'—']);
+  });
+  const wsSum=XLSX.utils.aoa_to_sheet(sumRows);
+  wsSum['!cols']=[{wch:14},{wch:20},{wch:16},{wch:16},{wch:14},{wch:16},{wch:12}];
+  applyStyles(wsSum,sumRows);
+  XLSX.utils.book_append_sheet(wb,wsSum,'Ringkasan');
+
+  if(wb.SheetNames.length===0){toast('Tiada data RMT untuk diexport');return}
+  XLSX.writeFile(wb,`Rekod_RMT_${bNm}_${tahun}_${isoToday()}.xlsx`);
+  toast(`✓ Rekod RMT ${bNm} ${tahun} berjaya diexport`);
+}
+
 function expMuridKelas(){
   const rows=[['Bil','Nama Murid','Kelas','Jantina','Status RMT']];
   [...murid].sort((a,b)=>a.kelas.localeCompare(b.kelas)||a.nama.localeCompare(b.nama))
@@ -1866,21 +2016,36 @@ function printRMT(){
   kList.forEach(k=>{
     const rm=murid.filter(m=>m.kelas===k.id&&m.rmt);if(!rm.length)return;
     let thCells=`<th class="pn-col">Nama Murid</th><th class="pk-col">Kelas</th>`;
-    dh.forEach(dh2=>{thCells+=`<th class="${dh2.wk?'we-col':'day-col'}">${dh2.d}<br><span>${HARI_S[dh2.di]}</span></th>`});
+    dh.forEach(dh2=>{
+      const adaRekod=!!(cache[dh2.iso]&&cache[dh2.iso][k.id]);
+      // Header: weekend+ada rekod=hijau(sekolah ganti), weekend sahaja=hitam, biasa=normal
+      const cls=dh2.wk?(adaRekod?'ganti-col':'we-col'):'day-col';
+      thCells+=`<th class="${cls}">${dh2.d}<br><span>${HARI_S[dh2.di]}${dh2.wk&&adaRekod?'*':''}</span></th>`;
+    });
     let rows2='';
+    const adaGanti=dh.some(d=>d.wk&&cache[d.iso]&&cache[d.iso][k.id]);
     rm.forEach((m,idx)=>{
       let cells=`<td class="pn-col">${m.nama}</td><td class="pk-col">${m.kelas}</td>`;
       dh.forEach(dh2=>{
-        if(dh2.wk){cells+='<td class="we-col"></td>';return}
         const rec=cache[dh2.iso]&&cache[dh2.iso][k.id];
-        if(!rec){cells+='<td class="empty-col"></td>';return}
-        const isA=rec.absenIds.includes(m.id);
-        cells+=`<td class="${isA?'absen-col':'hadir-col'}">${isA?'✗':'✓'}</td>`;
+        if(rec){
+          // Ada rekod — tunjuk status kehadiran (termasuk sekolah ganti/cuti khas)
+          const isA=rec.absenIds.includes(m.id);
+          if(!isA){
+            cells+=`<td class="${dh2.wk?'ganti-data-col':'hadir-col'}">${dh2.wk?'✓*':'✓'}</td>`;
+          } else {
+            cells+=`<td class="absen-col">✗</td>`;
+          }
+        } else if(dh2.wk){
+          cells+=`<td class="we-col"></td>`;
+        } else {
+          cells+=`<td class="empty-col"></td>`;
+        }
       });
       rows2+=`<tr class="${idx%2===0?'row-even':'row-odd'}">${cells}</tr>`;
     });
     tablesHtml+=`<div class="kelas-block">
-      <div class="kelas-hdr">${k.panjang} &nbsp;—&nbsp; ${rm.length} Murid RMT &nbsp;·&nbsp; ${bNm} ${tahun}</div>
+      <div class="kelas-hdr">${k.panjang} &nbsp;—&nbsp; ${rm.length} Murid RMT &nbsp;·&nbsp; ${bNm} ${tahun}${adaGanti?' &nbsp;·&nbsp; * Termasuk Sekolah Ganti/Cuti Khas':''}</div>
       <div style="overflow-x:auto"><table><thead><tr>${thCells}</tr></thead><tbody>${rows2}</tbody></table></div>
     </div>`;
   });
@@ -1913,6 +2078,8 @@ function printRMT(){
     .row-odd td{background:#ffffff}
     .hadir-col{background:#4a8a3a!important;color:#fff!important;font-weight:700;font-size:9px}
     .absen-col{background:#fde8ef!important;color:#c04868!important;font-weight:700;font-size:9px;border:1px solid #f8d0dc!important}
+    .ganti-data-col{background:#e67e22!important;color:#fff!important;font-weight:700;font-size:9px}
+    .ganti-col{background:#2d5a1e!important;color:#a0c878!important}
     .we-col{background:#e8e4de!important;color:#888!important}
     .empty-col{background:#f5f5f0!important}
     .footer{text-align:center;margin-top:14px;font-size:8px;color:#8a9a82;border-top:1px solid #d4e8c4;padding-top:8px}
@@ -1920,6 +2087,7 @@ function printRMT(){
   <div class="header"><h1>Rekod Kehadiran Murid RMT</h1><p>SK Felda Inas &nbsp;·&nbsp; ${bNm} ${tahun} &nbsp;·&nbsp; Dicetak: ${new Date().toLocaleString('ms-MY')}</p></div>
   <div class="legend">
     <div class="leg"><div class="leg-box" style="background:#4a8a3a"></div>Hadir</div>
+    <div class="leg"><div class="leg-box" style="background:#e67e22"></div>Hadir (Sekolah Ganti/Cuti Khas)</div>
     <div class="leg"><div class="leg-box" style="background:#fde8ef;border:1.5px solid #c04868"></div>Tidak Hadir</div>
     <div class="leg"><div class="leg-box" style="background:#e8e4de"></div>Cuti/Hujung Minggu</div>
     <div class="leg"><div class="leg-box" style="background:#f5f5f0;border:1px dashed #ccc"></div>Tiada Data</div>
