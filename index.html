@@ -434,6 +434,7 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
     <button class="atab" onclick="aTab('export',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
     <button class="atab" onclick="aTab('sesi',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Tetapan Sesi</button>
     <button class="atab" onclick="aTab('kelas',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Urus Kelas</button>
+    <button class="atab" onclick="aTab('reset',this)" style="color:var(--pk2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Reset Tahunan</button>
   </div>
   <div class="ap active" id="ap-senarai">
     <div class="card">
@@ -464,11 +465,105 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
   <div class="ap" id="ap-pukal">
     <div class="card">
       <div class="clbl">Import Murid Secara Pukal</div>
-      <div class="ibox2 g"><strong>Format setiap baris:</strong> <code>NAMA,KELAS,JANTINA,RMT</code><br>Contoh: <code>Ahmad bin Ali,1A,L,ya</code> atau <code>Siti binti Hassan,2B,P,tidak</code></div>
-      <div class="fg"><label>Tetapkan Kelas (optional)</label><select class="sel" id="pKl"><option value="">Ikut data dalam teks</option><option value="1A">Tahun 1 Arif</option><option value="2B">Tahun 2 Bestari</option><option value="3C">Tahun 3 Cemerlang</option><option value="4D">Tahun 4 Dinamik</option><option value="5E">Tahun 5 Emas</option></select></div>
-      <div class="fg"><label>Data Murid</label><textarea class="ftxt" id="pDat" rows="9" placeholder="Ahmad bin Abu,1A,L,ya&#10;Siti binti Ali,1A,P,tidak&#10;Muhammad bin Hassan,2B,L,ya"></textarea></div>
-      <button class="btn-g" onclick="impPukal()">Import Sekarang</button>
-      <div id="pRes"></div>
+      <!-- Sub-tabs -->
+      <div style="display:flex;background:var(--mgp2);border-radius:var(--rs);padding:4px;gap:4px;margin-bottom:16px">
+        <button id="itab-excel" onclick="swImpTab('excel')" style="flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--mg2);box-shadow:var(--sh1);transition:all .2s">Import dari Excel</button>
+        <button id="itab-teks" onclick="swImpTab('teks')" style="flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--t3);transition:all .2s">Import dari Teks</button>
+      </div>
+
+      <!-- EXCEL IMPORT -->
+      <div id="imp-excel">
+        <div class="ibox2 g">
+          <strong>Format Excel yang diperlukan:</strong><br>
+          Lajur A: <code>Nama Murid</code> &nbsp;·&nbsp; Lajur B: <code>Kelas</code> &nbsp;·&nbsp; Lajur C: <code>Jantina (L/P)</code> &nbsp;·&nbsp; Lajur D: <code>RMT (ya/tidak)</code><br>
+          Baris pertama adalah <strong>header</strong> — akan dilangkau secara automatik.
+        </div>
+        <div style="margin-bottom:14px">
+          <button onclick="downloadTemplate()" style="display:flex;align-items:center;gap:7px;padding:9px 16px;background:var(--mgp);border:1.5px solid var(--mgp3);border-radius:var(--rs);color:var(--mg2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Muat Turun Template Excel
+          </button>
+        </div>
+        <div class="fg"><label>Tetapkan Kelas (optional — override semua baris)</label><select class="sel" id="pKlExcel"><option value="">Ikut data dalam Excel</option></select></div>
+        <div id="excelDropZone" onclick="g('excelFileIn').click()" style="border:2px dashed var(--mgp3);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;background:var(--mgp2);transition:all .2s;margin-bottom:12px"
+          ondragover="event.preventDefault();this.style.borderColor='var(--mg)';this.style.background='var(--mgp)'"
+          ondragleave="this.style.borderColor='var(--mgp3)';this.style.background='var(--mgp2)'"
+          ondrop="event.preventDefault();this.style.borderColor='var(--mgp3)';this.style.background='var(--mgp2)';handleExcelDrop(event.dataTransfer.files[0])">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#5a7a4a" stroke-width="1.5" width="36" height="36" style="margin-bottom:10px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <div style="font-size:13px;font-weight:600;color:var(--mg2);margin-bottom:4px">Klik atau seret fail Excel ke sini</div>
+          <div style="font-size:11px;color:var(--t3)">Format: .xlsx atau .xls</div>
+          <div id="excelFileName" style="margin-top:10px;font-size:12px;font-weight:600;color:var(--mg);display:none"></div>
+        </div>
+        <input type="file" id="excelFileIn" accept=".xlsx,.xls" style="display:none" onchange="handleExcelFile(this.files[0])">
+        <div id="excelPreview" style="display:none;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pratonton Data</div>
+          <div style="max-height:200px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);background:var(--cream)">
+            <table style="width:100%;border-collapse:collapse;font-size:12px">
+              <thead><tr id="excelPreviewHdr" style="background:var(--mg);color:#fff"></tr></thead>
+              <tbody id="excelPreviewBody"></tbody>
+            </table>
+          </div>
+          <div id="excelPreviewCount" style="font-size:11px;color:var(--t3);margin-top:6px"></div>
+        </div>
+        <button class="btn-g" id="btnImpExcel" onclick="impExcel()" style="display:none">Import dari Excel</button>
+        <div id="excelRes"></div>
+      </div>
+
+      <!-- TEXT IMPORT -->
+      <div id="imp-teks" style="display:none">
+        <div class="ibox2 g"><strong>Format setiap baris:</strong> <code>NAMA,KELAS,JANTINA,RMT</code><br>Contoh: <code>Ahmad bin Ali,1A,L,ya</code> atau <code>Siti binti Hassan,2B,P,tidak</code></div>
+        <div class="fg"><label>Tetapkan Kelas (optional)</label><select class="sel" id="pKl"><option value="">Ikut data dalam teks</option></select></div>
+        <div class="fg"><label>Data Murid</label><textarea class="ftxt" id="pDat" rows="9" placeholder="Ahmad bin Abu,1A,L,ya&#10;Siti binti Ali,1A,P,tidak&#10;Muhammad bin Hassan,2B,L,ya"></textarea></div>
+        <button class="btn-g" onclick="impPukal()">Import Sekarang</button>
+        <div id="pRes"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET TAHUNAN -->
+  <div class="ap" id="ap-reset">
+    <div class="card">
+      <div class="clbl">Reset Data Tahunan</div>
+      <div style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:1.5px solid #ffe082;border-radius:var(--r);padding:16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2" width="22" height="22"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div style="font-size:13px;font-weight:700;color:#bf360c">Amaran Penting</div>
+        </div>
+        <div style="font-size:12px;color:#5d4037;line-height:1.7">
+          Reset tahunan akan <strong>memadam semua rekod kehadiran</strong> secara kekal.<br>
+          Data yang <strong>KEKAL</strong>: Nama murid, kelas, status RMT, tetapan kelas dan sesi.<br>
+          Data yang <strong>DIPADAM</strong>: Semua rekod kehadiran harian bagi tahun semasa.<br><br>
+          <strong>Pastikan anda sudah export/print semua laporan sebelum reset!</strong>
+        </div>
+      </div>
+
+      <div style="background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:12px">Pilih skop reset:</div>
+        <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;cursor:pointer">
+          <input type="radio" name="resetScope" value="semua" id="rsSemua" checked style="margin-top:2px;accent-color:var(--mg)">
+          <div><div style="font-size:13px;font-weight:600">Semua rekod kehadiran</div><div style="font-size:11px;color:var(--t3);margin-top:2px">Padam SEMUA rekod kehadiran — sesuai untuk reset tahun baharu</div></div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="radio" name="resetScope" value="tahun" id="rsTahun" style="margin-top:2px;accent-color:var(--mg)">
+          <div>
+            <div style="font-size:13px;font-weight:600">Rekod mengikut tahun</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:2px">Padam rekod untuk tahun tertentu sahaja</div>
+            <select class="sel" id="rsTahunSel" style="margin-top:8px;width:160px;padding:7px 10px;font-size:12px" onclick="document.getElementById('rsTahun').checked=true"></select>
+          </div>
+        </label>
+      </div>
+
+      <div style="background:var(--mgp2);border:1px solid var(--mgp3);border-radius:var(--rs);padding:13px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--mg2);margin-bottom:8px">Statistik data semasa:</div>
+        <div id="resetStats" style="font-size:12px;color:var(--t2);line-height:1.8"></div>
+      </div>
+
+      <div class="fg"><label>Taip <strong style="color:var(--pk2)">RESET</strong> untuk mengesahkan</label>
+        <input type="text" class="fi" id="resetConfirmInput" placeholder="Taip RESET di sini..." oninput="checkResetConfirm()">
+      </div>
+      <button id="btnReset" class="btn-r" onclick="openResetModal()" disabled style="width:100%;padding:13px;font-size:14px;font-weight:700;opacity:.4;cursor:not-allowed;border-radius:10px;border:none">
+        Reset Data Kehadiran
+      </button>
     </div>
   </div>
   <div class="ap" id="ap-sesi">
@@ -573,6 +668,23 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
   <p style="color:var(--t2);line-height:1.6" id="dkTxt"></p>
   <div id="dkWarn" style="margin-top:10px;padding:10px 13px;background:var(--pkp);border:1px solid var(--pkp3);border-radius:var(--rs);font-size:12px;color:var(--pk2);display:none"></div>
   <div class="mbtns"><button class="btn-o" onclick="closeDK()">Batal</button><button class="btn-r" id="dkConfBtn" onclick="confDK()">Ya, Padam</button></div>
+</div></div>
+
+<!-- MODAL RESET -->
+<div class="mov" id="resetModal" style="display:none" onclick="closeResetModal()"><div class="mc" onclick="event.stopPropagation()">
+  <div class="mt" style="color:#bf360c">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" style="vertical-align:middle;margin-right:6px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+    Pengesahan Reset Tahunan
+  </div>
+  <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;font-size:12px;color:#5d4037;line-height:1.7">
+    <strong>Tindakan ini tidak boleh dibatalkan.</strong><br>
+    Semua rekod kehadiran yang dipilih akan dipadam secara kekal dari Supabase dan cache tempatan.
+  </div>
+  <p style="color:var(--t2);font-size:13px;line-height:1.7" id="resetModalTxt"></p>
+  <div class="mbtns">
+    <button class="btn-o" onclick="closeResetModal()">Batal</button>
+    <button class="btn-r" onclick="confReset()" style="background:linear-gradient(135deg,#bf360c,#8d1a00)">Ya, Reset Sekarang</button>
+  </div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -1100,7 +1212,203 @@ async function confD(){
   localStorage.setItem('muridCache',JSON.stringify(murid));
   closeD();loadAL();buildKelas();toast('Murid berjaya dipadam');
 }
-function aTab(id,btn){document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.ap').forEach(p=>p.classList.remove('active'));btn.classList.add('active');g('ap-'+id).classList.add('active');if(id==='senarai')loadAL();if(id==='sesi')renderSesiCfg();if(id==='kelas')renderKelasAdmin()}
+/* ── IMPORT SUB-TABS ── */
+function swImpTab(tab){
+  const isExcel=tab==='excel';
+  g('imp-excel').style.display=isExcel?'block':'none';
+  g('imp-teks').style.display=isExcel?'none':'block';
+  const et=g('itab-excel'),tt=g('itab-teks');
+  et.style.cssText=`flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s;font-weight:${isExcel?'600':'500'};background:${isExcel?'#fff':'transparent'};color:${isExcel?'var(--mg2)':'var(--t3)'};box-shadow:${isExcel?'var(--sh1)':'none'}`;
+  tt.style.cssText=`flex:1;padding:8px;border:none;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s;font-weight:${!isExcel?'600':'500'};background:${!isExcel?'#fff':'transparent'};color:${!isExcel?'var(--mg2)':'var(--t3)'};box-shadow:${!isExcel?'var(--sh1)':'none'}`;
+}
+
+/* ── EXCEL TEMPLATE DOWNLOAD ── */
+function downloadTemplate(){
+  if(!window.XLSX){toast('Library Excel belum dimuatkan');return}
+  const rows=[
+    ['Nama Murid','Kelas','Jantina','RMT'],
+    ['Ahmad bin Abu Bakar','1A','L','ya'],
+    ['Siti binti Ali','1A','P','tidak'],
+    ['Muhammad bin Hassan','2B','L','ya'],
+  ];
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:35},{wch:14},{wch:12},{wch:10}];
+  // Style header
+  ['A1','B1','C1','D1'].forEach(c=>{
+    if(ws[c])ws[c].s={fill:{fgColor:{rgb:'2a3a22'}},font:{color:{rgb:'FFFFFF'},bold:true},alignment:{horizontal:'center'}};
+  });
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Senarai Murid');
+  XLSX.writeFile(wb,'Template_Import_Murid.xlsx');
+  toast('Template berjaya dimuat turun');
+}
+
+/* ── EXCEL FILE HANDLING ── */
+let excelParsedData=[];
+function handleExcelDrop(file){if(file)handleExcelFile(file)}
+function handleExcelFile(file){
+  if(!file){return}
+  if(!file.name.match(/\.(xlsx|xls)$/i)){toast('Sila pilih fail Excel (.xlsx atau .xls)');return}
+  if(!window.XLSX){toast('Library Excel belum dimuatkan');return}
+  const fn=g('excelFileName');fn.textContent=file.name;fn.style.display='block';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!raw||raw.length<2){toast('Fail Excel kosong atau format tidak sah');return}
+      // Skip header row
+      const dataRows=raw.slice(1).filter(r=>r[0]&&String(r[0]).trim());
+      excelParsedData=dataRows;
+      showExcelPreview(dataRows);
+    }catch(e){toast('Gagal membaca fail Excel: '+e.message)}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function showExcelPreview(rows){
+  const prev=g('excelPreview');
+  const hdr=g('excelPreviewHdr');
+  const body=g('excelPreviewBody');
+  const count=g('excelPreviewCount');
+  const btn=g('btnImpExcel');
+  if(!rows.length){prev.style.display='none';btn.style.display='none';return}
+  hdr.innerHTML='<th style="padding:6px 10px;text-align:left">Nama Murid</th><th style="padding:6px 8px">Kelas</th><th style="padding:6px 8px">Jantina</th><th style="padding:6px 8px">RMT</th>';
+  const okl=g('pKlExcel').value;
+  body.innerHTML=rows.slice(0,8).map((r,i)=>{
+    const nm=String(r[0]||'').trim();
+    const kl=okl||String(r[1]||'').trim().toUpperCase();
+    const jt=(String(r[2]||'L')).toUpperCase()==='P'?'P':'L';
+    const rv=(String(r[3]||'')).toLowerCase();
+    const rmt=rv==='ya'||rv==='y'||rv==='true'||rv==='1';
+    const valid=nm&&kl&&KELAS_DEFAULT.find(k=>k.id===kl);
+    return `<tr style="background:${i%2===0?'#f2f8ec':'#fff'}">
+      <td style="padding:5px 10px;font-size:11px;color:${valid?'var(--t1)':'var(--pk2)'}">${nm||'—'}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px;color:${KELAS_DEFAULT.find(k=>k.id===kl)?'var(--mg2)':'var(--pk2)'}">${kl||'—'}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px">${jt==='L'?'Lelaki':'Perempuan'}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px;color:${rmt?'var(--mg2)':'var(--t3)'}">${rmt?'RMT':'—'}</td>
+    </tr>`;
+  }).join('');
+  count.innerHTML=`<span style="color:var(--mg2);font-weight:600">${rows.length} baris</span> dijumpai${rows.length>8?' (menunjukkan 8 pertama)':''}`;
+  prev.style.display='block';
+  btn.style.display='block';
+}
+async function impExcel(){
+  if(!excelParsedData.length){toast('Tiada data Excel untuk diimport');return}
+  const okl=g('pKlExcel').value;
+  const res=g('excelRes');
+  res.innerHTML='<div style="font-size:12px;color:var(--t2);padding:8px">Sedang mengimport...</div>';
+  let ok=0,fail=0,errs=[];
+  for(const r of excelParsedData){
+    const nm=String(r[0]||'').trim();
+    const kl=okl||String(r[1]||'').trim().toUpperCase();
+    const jt=(String(r[2]||'L')).toUpperCase()==='P'?'P':'L';
+    const rv=(String(r[3]||'')).toLowerCase();
+    const rmt=rv==='ya'||rv==='y'||rv==='true'||rv==='1';
+    if(!nm||!kl||!KELAS_DEFAULT.find(k=>k.id===kl)){fail++;errs.push(`"${nm||'?'}" — kelas "${kl||'?'}" tidak sah`);continue}
+    const obj={nama:nm,kelas:kl,jantina:jt,rmt};
+    if(sb&&!SB_URL.includes('YOUR')){
+      try{const{data,error}=await sb.from('murid').insert([obj]).select();if(!error&&data&&data[0]){murid.push(data[0]);ok++;continue}}catch(e){}
+    }
+    murid.push({...obj,id:Date.now()+ok});ok++;
+  }
+  localStorage.setItem('muridCache',JSON.stringify(murid));
+  buildKelas();loadAL();
+  res.innerHTML=`<div class="${ok>0?'res-ok':'res-err'}">${ok} murid berjaya diimport dari Excel${fail?`<br><span style="font-size:11px">${fail} gagal: ${errs.slice(0,3).join('; ')}${errs.length>3?'...':''}</span>`:''}</div>`;
+  if(ok>0){excelParsedData=[];g('excelPreview').style.display='none';g('btnImpExcel').style.display='none';g('excelFileName').style.display='none';g('excelFileIn').value='';toast(`${ok} murid berjaya diimport dari Excel`)}
+}
+
+/* ── RESET TAHUNAN ── */
+function aTab(id,btn){
+  document.querySelectorAll('.atab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.ap').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');g('ap-'+id).classList.add('active');
+  if(id==='senarai')loadAL();
+  if(id==='sesi')renderSesiCfg();
+  if(id==='kelas')renderKelasAdmin();
+  if(id==='reset')renderResetPage();
+  if(id==='pukal'){swImpTab('excel');rebuildImportSelects()}
+}
+
+function rebuildImportSelects(){
+  const opts=KELAS_DEFAULT.map(k=>`<option value="${k.id}">${k.panjang}</option>`).join('');
+  ['pKlExcel','pKl'].forEach(id=>{const el=g(id);if(el){el.innerHTML=`<option value="">Ikut data dalam fail</option>`+opts}});
+}
+
+function renderResetPage(){
+  // Populate tahun selector
+  const sel=g('rsTahunSel');
+  if(sel){
+    const tahuns=[...new Set(Object.keys(cache).map(t=>t.substring(0,4)))].sort().reverse();
+    sel.innerHTML=tahuns.length?tahuns.map(y=>`<option value="${y}">${y}</option>`).join(''):'<option value="">Tiada rekod</option>';
+  }
+  // Stats
+  const totalRekod=Object.values(cache).reduce((a,rh)=>a+Object.keys(rh).length,0);
+  const tarikhTerawal=Object.keys(cache).sort()[0]||'—';
+  const tarikhTerkini=Object.keys(cache).sort().reverse()[0]||'—';
+  const div=g('resetStats');
+  if(div)div.innerHTML=`
+    Jumlah rekod kehadiran: <strong>${totalRekod}</strong><br>
+    Tarikh terawal: <strong>${tarikhTerawal}</strong><br>
+    Tarikh terkini: <strong>${tarikhTerkini}</strong><br>
+    Jumlah murid (tidak terjejas): <strong>${murid.length}</strong>`;
+  // Reset confirm input
+  const inp=g('resetConfirmInput');if(inp)inp.value='';
+  const btn=g('btnReset');if(btn){btn.disabled=true;btn.style.opacity='.4';btn.style.cursor='not-allowed'}
+}
+
+function checkResetConfirm(){
+  const val=(g('resetConfirmInput').value||'').trim().toUpperCase();
+  const btn=g('btnReset');
+  const ok=val==='RESET';
+  btn.disabled=!ok;btn.style.opacity=ok?'1':'.4';btn.style.cursor=ok?'pointer':'not-allowed';
+}
+
+function openResetModal(){
+  const scope=document.querySelector('input[name="resetScope"]:checked')?.value||'semua';
+  const tahun=g('rsTahunSel')?.value||'';
+  let txt='';
+  if(scope==='semua'){
+    const total=Object.values(cache).reduce((a,rh)=>a+Object.keys(rh).length,0);
+    txt=`Semua <strong>${total} rekod kehadiran</strong> dari semua tahun akan dipadam. Nama murid tidak terjejas.`;
+  } else {
+    const total=Object.keys(cache).filter(t=>t.startsWith(tahun)).reduce((a,t)=>a+Object.keys(cache[t]).length,0);
+    txt=`<strong>${total} rekod kehadiran</strong> bagi tahun <strong>${tahun}</strong> akan dipadam. Nama murid tidak terjejas.`;
+  }
+  g('resetModalTxt').innerHTML=txt;
+  g('resetModal').style.display='flex';
+}
+function closeResetModal(){g('resetModal').style.display='none'}
+
+async function confReset(){
+  const scope=document.querySelector('input[name="resetScope"]:checked')?.value||'semua';
+  const tahun=g('rsTahunSel')?.value||'';
+  closeResetModal();
+  g('LOV').style.display='flex';
+  // Delete from Supabase
+  if(sb&&!SB_URL.includes('YOUR')){
+    try{
+      if(scope==='semua'){
+        await sb.from('kehadiran').delete().neq('id',0);
+      } else {
+        await sb.from('kehadiran').delete().like('tarikh',tahun+'%');
+      }
+    }catch(e){console.warn('Supabase reset error:',e)}
+  }
+  // Clear local cache
+  if(scope==='semua'){
+    cache={};
+  } else {
+    Object.keys(cache).forEach(t=>{if(t.startsWith(tahun))delete cache[t]});
+  }
+  saveCache();
+  g('LOV').style.display='none';
+  // Reset UI
+  g('resetConfirmInput').value='';
+  const btn=g('btnReset');if(btn){btn.disabled=true;btn.style.opacity='.4';btn.style.cursor='not-allowed'}
+  buildKelas();renderResetPage();
+  toast(scope==='semua'?'Semua rekod kehadiran berjaya direset':'Rekod kehadiran '+tahun+' berjaya direset');
+}
 
 /* ── URUS KELAS ── */
 let delKelasId=null;
