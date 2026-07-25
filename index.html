@@ -649,7 +649,11 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
 <div class="mov" id="ekModal" style="display:none" onclick="closeEK()"><div class="mc" onclick="event.stopPropagation()">
   <div class="mt">Edit Kelas</div>
   <input type="hidden" id="ekId">
-  <div class="fg"><label>ID Kelas <span style="font-size:10px;color:var(--t3)">(tidak boleh ditukar)</span></label><input type="text" class="fi" id="ekIdDisp" disabled style="opacity:.5;cursor:not-allowed"></div>
+  <div id="ekMuridWarn" style="display:none;background:#e8f2e0;border:1px solid #b8d8a0;border-radius:var(--rs);padding:10px 13px;margin-bottom:14px;font-size:12px;color:#3a5a2a;line-height:1.6"></div>
+  <div class="r2">
+    <div class="fg"><label>ID Kelas Lama</label><input type="text" class="fi" id="ekIdDisp" disabled style="opacity:.5;cursor:not-allowed;font-weight:700"></div>
+    <div class="fg"><label>ID Kelas Baru <span style="font-size:10px;color:var(--pk2)">*boleh tukar</span></label><input type="text" class="fi" id="ekIdBaru" placeholder="contoh: 2B" maxlength="4" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+  </div>
   <div class="fg"><label>Nama Pendek</label><input type="text" class="fi" id="ekNama" placeholder="Thn 1 Arif"></div>
   <div class="fg"><label>Nama Penuh</label><input type="text" class="fi" id="ekPanjang" placeholder="Tahun 1 Arif"></div>
   <div class="fg"><label>Sesi</label>
@@ -659,15 +663,15 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
     </div>
   </div>
   <input type="hidden" id="ekSesiVal" value="petang">
-  <div class="mbtns"><button class="btn-o" onclick="closeEK()">Batal</button><button class="btn-g" style="width:auto;padding:10px 22px" onclick="saveEK()">Simpan</button></div>
+  <div class="mbtns"><button class="btn-o" onclick="closeEK()">Batal</button><button class="btn-g" style="width:auto;padding:10px 22px" onclick="saveEK()">Simpan Perubahan</button></div>
 </div></div>
 
 <!-- MODAL DELETE KELAS -->
 <div class="mov" id="dkModal" style="display:none" onclick="closeDK()"><div class="mc" onclick="event.stopPropagation()">
   <div class="mt" style="color:var(--pk2)">Padam Kelas</div>
-  <p style="color:var(--t2);line-height:1.6" id="dkTxt"></p>
-  <div id="dkWarn" style="margin-top:10px;padding:10px 13px;background:var(--pkp);border:1px solid var(--pkp3);border-radius:var(--rs);font-size:12px;color:var(--pk2);display:none"></div>
-  <div class="mbtns"><button class="btn-o" onclick="closeDK()">Batal</button><button class="btn-r" id="dkConfBtn" onclick="confDK()">Ya, Padam</button></div>
+  <p style="color:var(--t2);line-height:1.6;margin-bottom:12px" id="dkTxt"></p>
+  <div id="dkWarn" style="display:none;background:var(--pkp);border:1px solid var(--pkp3);border-radius:var(--rs);padding:11px 13px;font-size:12px;color:var(--pk2);line-height:1.7;margin-bottom:4px"></div>
+  <div class="mbtns"><button class="btn-o" onclick="closeDK()">Batal</button><button class="btn-r" id="dkConfBtn" onclick="confDK()">Ya, Padam Kelas</button></div>
 </div></div>
 
 <!-- MODAL RESET -->
@@ -1471,27 +1475,104 @@ function tambahKelas(){
 let ekSesiSel='petang';
 function openEK(id){
   const k=KELAS_DEFAULT.find(x=>x.id===id);if(!k)return;
-  g('ekId').value=id;g('ekIdDisp').value=id;g('ekNama').value=k.nama;g('ekPanjang').value=k.panjang;
+  g('ekId').value=id;
+  g('ekIdDisp').value=id;
+  g('ekIdBaru').value=id;
+  g('ekNama').value=k.nama;
+  g('ekPanjang').value=k.panjang;
   ekSesiSel=sesiConfig[id]||'petang';g('ekSesiVal').value=ekSesiSel;
   setEKSesi(ekSesiSel);
+  const jml=murid.filter(m=>m.kelas===id).length;
+  const warn=g('ekMuridWarn');
+  if(jml>0){
+    warn.style.display='block';
+    warn.innerHTML=`<strong>${jml} murid</strong> dalam kelas ini. Jika ID kelas ditukar, semua murid akan dikemas kini secara automatik ke ID baru.`;
+  } else {
+    warn.style.display='none';
+  }
   g('ekModal').style.display='flex';
 }
 function closeEK(){g('ekModal').style.display='none'}
 function setEKSesi(sesi){
   ekSesiSel=sesi;g('ekSesiVal').value=sesi;
   const p=g('ekSesiPagi'),t=g('ekSesiPetang');
-  if(sesi==='pagi'){p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--mg);background:var(--mgp);color:var(--mg2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s'}
-  else{t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--pk);background:var(--pkp);color:var(--pk2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s'}
+  if(sesi==='pagi'){
+    p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--mg);background:var(--mgp);color:var(--mg2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';
+    t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s';
+  } else {
+    t.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--pk);background:var(--pkp);color:var(--pk2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s';
+    p.style.cssText='flex:1;padding:10px;border-radius:var(--rs);border:1.5px solid var(--bd);background:var(--cream);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s';
+  }
 }
-function saveEK(){
-  const id=g('ekId').value,nama=g('ekNama').value.trim(),panjang=g('ekPanjang').value.trim(),sesi=g('ekSesiVal').value;
-  if(!nama||!panjang){toast('Sila isi nama kelas');return}
-  const i=KELAS_DEFAULT.findIndex(k=>k.id===id);
-  if(i>=0)KELAS_DEFAULT[i]={...KELAS_DEFAULT[i],nama,panjang};
-  sesiConfig[id]=sesi;
+async function saveEK(){
+  const idLama=g('ekId').value;
+  const idBaru=(g('ekIdBaru').value||'').trim().toUpperCase();
+  const nama=g('ekNama').value.trim();
+  const panjang=g('ekPanjang').value.trim();
+  const sesi=g('ekSesiVal').value;
+  if(!idBaru||!nama||!panjang){toast('Sila isi semua maklumat');return}
+  if(!/^[A-Z0-9]{1,4}$/.test(idBaru)){toast('ID kelas tidak sah — gunakan huruf besar/nombor, maks 4 aksara');return}
+  // Check if new ID conflicts with another existing class
+  if(idBaru!==idLama&&KELAS_DEFAULT.find(k=>k.id===idBaru)){toast(`ID kelas "${idBaru}" sudah wujud`);return}
+  g('LOV').style.display='flex';
+  const idBerubah=idBaru!==idLama;
+  // 1. Update KELAS_DEFAULT
+  const i=KELAS_DEFAULT.findIndex(k=>k.id===idLama);
+  if(i>=0)KELAS_DEFAULT[i]={id:idBaru,nama,panjang};
+  // 2. Update sesiConfig
+  if(idBerubah){
+    sesiConfig[idBaru]=sesi;
+    delete sesiConfig[idLama];
+  } else {
+    sesiConfig[idBaru]=sesi;
+  }
   saveKelasConfig();saveSesiConfig();
+  // 3. Update all murid with old kelas → new kelas
+  if(idBerubah){
+    const muridDalamKelas=murid.filter(m=>m.kelas===idLama);
+    // Update Supabase
+    if(sb&&!SB_URL.includes('YOUR')&&muridDalamKelas.length>0){
+      try{await sb.from('murid').update({kelas:idBaru}).eq('kelas',idLama)}catch(e){console.warn(e)}
+    }
+    // Update local
+    murid=murid.map(m=>m.kelas===idLama?{...m,kelas:idBaru}:m);
+    localStorage.setItem('muridCache',JSON.stringify(murid));
+    // 4. Update cache rekod kehadiran — rename kelas key
+    Object.keys(cache).forEach(tarikh=>{
+      if(cache[tarikh][idLama]){
+        const rec=cache[tarikh][idLama];
+        cache[tarikh][idBaru]={...rec,kelas:idBaru,namaKelas:panjang};
+        delete cache[tarikh][idLama];
+      }
+    });
+    saveCache();
+    // Update Supabase kehadiran — update kelas column and namaKelas in data
+    if(sb&&!SB_URL.includes('YOUR')){
+      try{
+        const{data:khData}=await sb.from('kehadiran').select('*').eq('kelas',idLama);
+        if(khData&&khData.length){
+          for(const r of khData){
+            const updatedData={...r.data,kelas:idBaru,namaKelas:panjang};
+            await sb.from('kehadiran').update({kelas:idBaru,data:updatedData}).eq('id',r.id);
+          }
+        }
+      }catch(e){console.warn(e)}
+    }
+  } else {
+    // ID sama, tapi nama mungkin berubah — update namaKelas dalam rekod
+    murid=murid.map(m=>m.kelas===idBaru?m:m); // no change needed
+    // Update namaKelas in cache
+    Object.keys(cache).forEach(tarikh=>{
+      if(cache[tarikh][idBaru]){
+        cache[tarikh][idBaru]={...cache[tarikh][idBaru],namaKelas:panjang};
+      }
+    });
+    saveCache();
+  }
   KELAS=getKelas();rebuildKelasSelects();buildKelas();renderKelasAdmin();renderSesiCfg();
-  closeEK();toast(`Kelas ${panjang} berjaya dikemas kini`);
+  g('LOV').style.display='none';
+  closeEK();
+  toast(`Kelas ${panjang}${idBerubah?` (${idLama} → ${idBaru})`:''}  berjaya dikemas kini${idBerubah?` — murid auto dikemas kini ke ${idBaru}`:''}`)
 }
 
 // Delete kelas modal
@@ -1500,25 +1581,44 @@ function openDK(id){
   const k=KELAS_DEFAULT.find(x=>x.id===id);if(!k)return;
   const jml=murid.filter(m=>m.kelas===id).length;
   g('dkTxt').innerHTML=`Anda pasti mahu memadam kelas <strong>${k.panjang} (${id})</strong>?`;
-  const warn=g('dkWarn'),btn=g('dkConfBtn');
+  const warn=g('dkWarn');
   if(jml>0){
     warn.style.display='block';
-    warn.innerHTML=`<strong>Amaran:</strong> Terdapat <strong>${jml} murid</strong> dalam kelas ini. Murid-murid ini masih wujud dalam sistem tetapi tiada kelas. Sila pindahkan mereka ke kelas lain dahulu.`;
-    btn.disabled=true;btn.style.opacity='.5';btn.style.cursor='not-allowed';
+    warn.innerHTML=`<strong>Amaran:</strong> Terdapat <strong>${jml} murid</strong> dalam kelas ini.<br>Semua murid dalam kelas ini akan <strong>dipadam secara automatik</strong> bersama kelas ini.`;
   } else {
-    warn.style.display='none';btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+    warn.style.display='none';
   }
+  g('dkConfBtn').disabled=false;g('dkConfBtn').style.opacity='1';g('dkConfBtn').style.cursor='pointer';
   g('dkModal').style.display='flex';
 }
 function closeDK(){g('dkModal').style.display='none';delKelasId=null}
-function confDK(){
+async function confDK(){
   if(!delKelasId)return;
   const k=KELAS_DEFAULT.find(x=>x.id===delKelasId);
+  const muridDalamKelas=murid.filter(m=>m.kelas===delKelasId);
+  g('LOV').style.display='flex';
+  // 1. Delete murid dalam kelas ini dari Supabase
+  if(sb&&!SB_URL.includes('YOUR')&&muridDalamKelas.length>0){
+    try{await sb.from('murid').delete().eq('kelas',delKelasId)}catch(e){console.warn(e)}
+  }
+  // 2. Delete rekod kehadiran kelas ini dari Supabase
+  if(sb&&!SB_URL.includes('YOUR')){
+    try{await sb.from('kehadiran').delete().eq('kelas',delKelasId)}catch(e){console.warn(e)}
+  }
+  // 3. Update local data
+  murid=murid.filter(m=>m.kelas!==delKelasId);
+  localStorage.setItem('muridCache',JSON.stringify(murid));
+  // 4. Remove from cache
+  Object.keys(cache).forEach(tarikh=>{delete cache[tarikh][delKelasId]});
+  saveCache();
+  // 5. Remove kelas
   KELAS_DEFAULT=KELAS_DEFAULT.filter(x=>x.id!==delKelasId);
   delete sesiConfig[delKelasId];
   saveKelasConfig();saveSesiConfig();
   KELAS=getKelas();rebuildKelasSelects();buildKelas();renderKelasAdmin();renderSesiCfg();
-  closeDK();toast(`Kelas ${k?.panjang||delKelasId} berjaya dipadam`);
+  g('LOV').style.display='none';
+  closeDK();
+  toast(`Kelas ${k?.panjang||delKelasId} dan ${muridDalamKelas.length} murid berjaya dipadam`);
 }
 
 function renderSesiCfg(){
