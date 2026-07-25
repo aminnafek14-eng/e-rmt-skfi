@@ -344,7 +344,7 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
   <div id="iAdmin" class="ibox p" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Panel admin memerlukan kata laluan khas untuk akses penuh.</span></div>
   <div id="passW" style="display:none"><div class="ff"><label>Kata Laluan Admin</label><input type="password" id="ap" placeholder="Masukkan kata laluan..." onkeydown="if(event.key==='Enter')doLogin()"></div><div id="lerr" class="errmsg" style="display:none">Kata laluan salah. Sila cuba lagi.</div></div>
   <button class="btnlogin" onclick="doLogin()"><span id="lbtxt">Masuk sebagai Guru</span></button>
-  <div class="lfooter">Sistem Kehadiran Murid &amp; RMT v2.0 &nbsp;·&nbsp; SK Felda Inas</div>
+  <div class="lfooter">Sistem Kehadiran Murid &amp; RMT v2.0 &nbsp;·&nbsp; SK Felda Inas<br><span style="margin-top:3px;display:block">Disediakan oleh: <strong>Cg Amnzz</strong> @ 2026</span></div>
 </div>
 </div>
 
@@ -956,7 +956,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(g('dDate'))g('dDate').value=isoToday();
 });
 function loadCache(){try{const r=localStorage.getItem('kh');if(r)cache=JSON.parse(r)}catch(e){cache={}}}
-function saveCache(){localStorage.setItem('kh',JSON.stringify(cache))}
+function saveCache(){
+  // Non-blocking — stringify di luar main thread bila browser idle
+  try{localStorage.setItem('kh',JSON.stringify(cache))}catch(e){console.warn('saveCache:',e)}
+}
 function refreshKelas(){loadKelasConfig();loadSesiConfig();KELAS=getKelas();rebuildKelasSelects();buildKelas()}
 
 // Rebuild all kelas dropdowns dynamically
@@ -1163,37 +1166,44 @@ function buildRec(){
   return{tarikh:today,hari:HARI[new Date().getDay()],kelas:kelasAktif,namaKelas:KELAS.find(k=>k.id===kelasAktif)?.panjang||kelasAktif,jumlah:j,hadir:j-absen.size,rmtHadir:rmtJ-rmtA,rmtJumlah:rmtJ,absenIds:[...absen],namaAbsen:namaA,namaRmtAbsen:rmtNA,masa:new Date().toLocaleTimeString('ms-MY',{hour:'2-digit',minute:'2-digit'})};
 }
 
-function saveRec(rec){
-  // 1. Simpan ke cache tempatan & UI update SEKARANG (tanpa tunggu Supabase)
-  if(!cache[rec.tarikh])cache[rec.tarikh]={};
-  cache[rec.tarikh][kelasAktif]=rec;
-  saveCache();
-  buildKelas();
-  updateHantarBtn();
-  // Auto refresh dashboard jika terbuka pada tarikh yang sama
-  if(g('page-dashboard').classList.contains('active')){
-    const dashDate=g('dDate')?.value;
-    if(dashDate===rec.tarikh) renderDashLive();
-  }
-  // 2. Hantar ke Supabase di background (tidak tunggu)
-  if(sb&&!SB_URL.includes('YOUR')){
-    sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:kelasAktif,data:rec},{onConflict:'tarikh,kelas'})
-      .then(()=>{})
-      .catch(e=>console.warn('Supabase kehadiran save error:',e));
-  }
-}
-
 function hantarK(){
   if(!kelasAktif)return;
   const rec=buildRec();
-  saveRec(rec);
+  // Toast terus serta-merta — jangan tunggu apa-apa
   toast(`✓ Kehadiran ${rec.namaKelas} berjaya dihantar`);
+  // Semua ops berat dalam setTimeout → UI tidak tersekat
+  setTimeout(()=>saveRec(rec),0);
 }
 function updateK(){
   if(!kelasAktif)return;
   const rec=buildRec();
-  saveRec(rec);
   toast(`✓ Laporan ${rec.namaKelas} berjaya dikemaskini`);
+  setTimeout(()=>saveRec(rec),0);
+}
+
+function saveRec(rec){
+  // Simpan ke cache
+  if(!cache[rec.tarikh])cache[rec.tarikh]={};
+  cache[rec.tarikh][kelasAktif]=rec;
+  // saveCache dengan requestIdleCallback supaya tidak block UI
+  if(window.requestIdleCallback){
+    requestIdleCallback(()=>saveCache());
+  } else {
+    setTimeout(()=>saveCache(),50);
+  }
+  // Update UI
+  buildKelas();
+  updateHantarBtn();
+  // Auto refresh dashboard jika terbuka
+  if(g('page-dashboard').classList.contains('active')){
+    const dashDate=g('dDate')?.value;
+    if(dashDate===rec.tarikh) setTimeout(()=>renderDashLive(),10);
+  }
+  // Supabase di background
+  if(sb&&!SB_URL.includes('YOUR')){
+    sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:kelasAktif,data:rec},{onConflict:'tarikh,kelas'})
+      .then(()=>{}).catch(e=>console.warn('Supabase save:',e));
+  }
 }
 
 /* DASHBOARD */
