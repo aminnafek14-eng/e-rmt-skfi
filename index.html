@@ -315,6 +315,12 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
 .r2{grid-template-columns:1fr}
 .pie-row{grid-template-columns:1fr}
 .dhero-num{font-size:40px}
+.sn{font-size:20px}
+.sl{font-size:9px}
+.st{padding:10px 6px}
+/* Scroll hint pada kelas button di mobile */
+.kb::after{content:'';display:none}
+.kb.active::after{content:'↓ lihat senarai';display:block;font-size:9px;color:rgba(255,255,255,.7);margin-top:4px;letter-spacing:.3px}
 }
 </style>
 </head>
@@ -1035,6 +1041,14 @@ function pilihK(kid,btn){
   document.querySelectorAll('.kb').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');
   g('kBdg').textContent=kid;g('seksyen').style.display='block';g('emptyK').style.display='none';
   renderMurid();updateHantarBtn();
+  // Auto scroll ke senarai nama (terutama telefon)
+  setTimeout(()=>{
+    const el=g('seksyen');
+    if(!el)return;
+    const yOffset=-70; // allowance untuk topbar sticky
+    const y=el.getBoundingClientRect().top+window.pageYOffset+yOffset;
+    window.scrollTo({top:y,behavior:'smooth'});
+  },80);
 }
 function renderMurid(){
   const cari=(g('cI').value||'').toLowerCase();
