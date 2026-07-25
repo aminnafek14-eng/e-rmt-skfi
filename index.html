@@ -746,7 +746,15 @@ async function loadConfigFromSupabase(){
   if(!sb||SB_URL.includes('YOUR'))return;
   try{
     const{data,error}=await sb.from('config').select('*');
-    if(error||!data)return;
+    if(error){console.warn('config error:',error);return;}
+    if(!data||data.length===0){
+      // Config belum ada dalam Supabase — push dari localStorage/default sekarang
+      await sb.from('config').upsert([
+        {key:'kelas',value:JSON.stringify(KELAS_DEFAULT)},
+        {key:'sesi',value:JSON.stringify(sesiConfig)}
+      ],{onConflict:'key'});
+      return;
+    }
     data.forEach(row=>{
       if(row.key==='kelas'){
         try{
@@ -755,7 +763,7 @@ async function loadConfigFromSupabase(){
             KELAS_DEFAULT=parsed;
             localStorage.setItem('kelasCfg',row.value);
           }
-        }catch(e){}
+        }catch(e){console.warn('parse kelas:',e)}
       }
       if(row.key==='sesi'){
         try{
@@ -764,10 +772,25 @@ async function loadConfigFromSupabase(){
             sesiConfig=parsed;
             localStorage.setItem('sesiCfg',row.value);
           }
-        }catch(e){}
+        }catch(e){console.warn('parse sesi:',e)}
       }
     });
   }catch(e){console.warn('loadConfigFromSupabase:',e)}
+}
+
+// Load rekod kehadiran dari Supabase
+async function loadCacheFromSupabase(){
+  if(!sb||SB_URL.includes('YOUR'))return;
+  try{
+    const{data,error}=await sb.from('kehadiran').select('*');
+    if(error||!data)return;
+    cache={};
+    data.forEach(r=>{
+      if(!cache[r.tarikh])cache[r.tarikh]={};
+      cache[r.tarikh][r.kelas]=r.data;
+    });
+    saveCache();
+  }catch(e){console.warn('loadCacheFromSupabase:',e)}
 }
 function getKelas(){return KELAS_DEFAULT.map(k=>({...k,sesi:sesiConfig[k.id]||'petang'}))}
 let KELAS=[];
@@ -789,6 +812,12 @@ function tick(){
 }
 document.addEventListener('DOMContentLoaded',()=>{
   tick();setInterval(tick,30000);
+  // Buang semua localStorage cache supaya Supabase jadi sumber utama
+  if(!SB_URL.includes('YOUR')){
+    localStorage.removeItem('kelasCfg');
+    localStorage.removeItem('sesiCfg');
+    localStorage.removeItem('muridCache');
+  }
   loadCache();loadKelasConfig();loadSesiConfig();KELAS=getKelas();rebuildKelasSelects();
   const now=new Date();
   const rb=g('rB'),ry=g('rY');
@@ -825,11 +854,12 @@ async function enterApp(r){
   if(r==='admin'){g('aNv').style.display='block';g('uDot').textContent='A';g('uName').textContent='Admin';g('uRole').textContent='Akses Penuh'}
   else{g('uDot').textContent='G';g('uName').textContent='Guru';g('uRole').textContent='Akses Terhad'}
   g('LOV').style.display='flex';
-  // Load config kelas & sesi dari Supabase (sync semua peranti)
-  await loadConfigFromSupabase();
+  // Load semua data dari Supabase (sumber tunggal kebenaran)
+  await Promise.all([
+    loadConfigFromSupabase(),
+    loadCacheFromSupabase()
+  ]);
   KELAS=getKelas();rebuildKelasSelects();
-  // Buang cache murid supaya data fresh dari Supabase
-  if(!SB_URL.includes('YOUR'))localStorage.removeItem('muridCache');
   await loadMurid();
   g('LOV').style.display='none';
   buildKelas();tick();
