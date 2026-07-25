@@ -721,8 +721,9 @@ function loadKelasConfig(){
   catch(e){KELAS_DEFAULT=[...KELAS_ASAL]}
 }
 function saveKelasConfig(){
+  // Sort dulu sebelum simpan
+  KELAS_DEFAULT=sortKelas(KELAS_DEFAULT);
   localStorage.setItem('kelasCfg',JSON.stringify(KELAS_DEFAULT));
-  // Sync ke Supabase
   if(sb&&!SB_URL.includes('YOUR')){
     sb.from('config').upsert({key:'kelas',value:JSON.stringify(KELAS_DEFAULT)},{onConflict:'key'}).then(()=>{}).catch(e=>console.warn('saveKelasConfig:',e));
   }
@@ -792,14 +793,96 @@ async function loadCacheFromSupabase(){
     saveCache();
   }catch(e){console.warn('loadCacheFromSupabase:',e)}
 }
-function getKelas(){return KELAS_DEFAULT.map(k=>({...k,sesi:sesiConfig[k.id]||'petang'}))}
+// Sort kelas ikut abjad A-Z (ID kelas)
+function sortKelas(arr){return [...arr].sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true,sensitivity:'base'}))}
+function getKelas(){return sortKelas(KELAS_DEFAULT).map(k=>({...k,sesi:sesiConfig[k.id]||'petang'}))}
 let KELAS=[];
+let liveChannel=null; // Supabase realtime channel
 let role=null,murid=[],kelasAktif='',absen=new Set(),cache={},delId=null,delIds=[],rmtFilt='semua';
 const g=id=>document.getElementById(id);
 function isoToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function fmtLong(s){const d=new Date(s+'T00:00:00');return `${HARI[d.getDay()]}, ${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`}
 function dim(y,m){return new Date(y,m+1,0).getDate()}
 function isSchoolDay(d){const day=new Date(d+'T00:00:00').getDay();return day>=1&&day<=5}
+
+/* ── LIVE SYNC via Supabase Realtime ── */
+function startLiveSync(){
+  if(!sb||SB_URL.includes('YOUR'))return;
+  // Unsubscribe kalau ada channel lama
+  if(liveChannel){try{sb.removeChannel(liveChannel)}catch(e){}}
+
+  liveChannel=sb.channel('live-sync')
+    // Sync murid
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'murid'},payload=>{
+      if(!murid.find(m=>m.id===payload.new.id)){
+        murid.push(payload.new);
+        localStorage.setItem('muridCache',JSON.stringify(murid));
+        if(kelasAktif===payload.new.kelas)renderMurid();
+        buildKelas();
+      }
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'murid'},payload=>{
+      const i=murid.findIndex(m=>m.id===payload.new.id);
+      if(i>=0){murid[i]=payload.new;localStorage.setItem('muridCache',JSON.stringify(murid));buildKelas();if(kelasAktif===payload.new.kelas||kelasAktif===payload.old?.kelas)renderMurid()}
+    })
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'murid'},payload=>{
+      murid=murid.filter(m=>m.id!==payload.old.id);
+      localStorage.setItem('muridCache',JSON.stringify(murid));
+      buildKelas();if(kelasAktif)renderMurid();
+    })
+    // Sync kehadiran
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'kehadiran'},payload=>{
+      const r=payload.new;
+      if(!cache[r.tarikh])cache[r.tarikh]={};
+      cache[r.tarikh][r.kelas]=r.data;
+      saveCache();buildKelas();
+      showSyncToast('Kehadiran dikemas kini oleh pengguna lain');
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'kehadiran'},payload=>{
+      const r=payload.new;
+      if(!cache[r.tarikh])cache[r.tarikh]={};
+      cache[r.tarikh][r.kelas]=r.data;
+      saveCache();buildKelas();
+    })
+    // Sync config kelas & sesi
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'config'},payload=>applyConfigChange(payload.new))
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config'},payload=>applyConfigChange(payload.new))
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED'){console.log('Live sync aktif');}
+      else if(status==='CHANNEL_ERROR'){console.warn('Live sync error — retry dalam 5s');setTimeout(startLiveSync,5000);}
+    });
+}
+
+function applyConfigChange(row){
+  if(row.key==='kelas'){
+    try{
+      const parsed=JSON.parse(row.value);
+      if(Array.isArray(parsed)&&parsed.length>0){
+        KELAS_DEFAULT=parsed;
+        localStorage.setItem('kelasCfg',row.value);
+        KELAS=getKelas();rebuildKelasSelects();buildKelas();
+        showSyncToast('Senarai kelas telah dikemas kini');
+      }
+    }catch(e){}
+  }
+  if(row.key==='sesi'){
+    try{
+      const parsed=JSON.parse(row.value);
+      if(parsed&&typeof parsed==='object'){
+        sesiConfig=parsed;
+        localStorage.setItem('sesiCfg',row.value);
+        KELAS=getKelas();buildKelas();
+      }
+    }catch(e){}
+  }
+}
+
+function showSyncToast(msg){
+  // Tunjuk notifikasi sync kecil (tak ganggu pengguna)
+  const t=g('toast');if(!t)return;
+  t.textContent='🔄 '+msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
 
 /* CLOCK */
 function tick(){
@@ -863,8 +946,15 @@ async function enterApp(r){
   await loadMurid();
   g('LOV').style.display='none';
   buildKelas();tick();
+  // Mula live sync — semua peranti akan auto update
+  startLiveSync();
 }
-function logout(){role=null;g('APP').style.display='none';g('LS').style.display='flex';g('ap').value='';g('lerr').style.display='none';lMode='guru';document.querySelectorAll('.ltab').forEach((t,i)=>t.classList.toggle('active',i===0));g('iGuru').style.display='flex';g('iAdmin').style.display='none';g('passW').style.display='none';g('lbtxt').textContent='Masuk sebagai Guru'}
+function logout(){
+  // Henti live sync
+  if(liveChannel&&sb){try{sb.removeChannel(liveChannel)}catch(e){}}
+  liveChannel=null;
+  role=null;g('APP').style.display='none';g('LS').style.display='flex';g('ap').value='';g('lerr').style.display='none';lMode='guru';document.querySelectorAll('.ltab').forEach((t,i)=>t.classList.toggle('active',i===0));g('iGuru').style.display='flex';g('iAdmin').style.display='none';g('passW').style.display='none';g('lbtxt').textContent='Masuk sebagai Guru';
+}
 
 /* DATA */
 async function loadMurid(){
