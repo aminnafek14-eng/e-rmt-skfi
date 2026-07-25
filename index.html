@@ -660,6 +660,10 @@ async function enterApp(r){
   if(r==='admin'){g('aNv').style.display='block';g('uDot').textContent='A';g('uName').textContent='Admin';g('uRole').textContent='Akses Penuh'}
   else{g('uDot').textContent='G';g('uName').textContent='Guru';g('uRole').textContent='Akses Terhad'}
   g('LOV').style.display='flex';
+  // Jika Supabase dikonfigurasi, buang cache lama supaya data fresh dari server
+  if(!SB_URL.includes('YOUR')){
+    localStorage.removeItem('muridCache');
+  }
   await loadMurid();
   g('LOV').style.display='none';
   buildKelas();tick();
@@ -668,26 +672,29 @@ function logout(){role=null;g('APP').style.display='none';g('LS').style.display=
 
 /* DATA */
 async function loadMurid(){
-  // Try Supabase first
+  // Cuba Supabase
   if(sb&&!SB_URL.includes('YOUR')){
     try{
       const{data,error}=await sb.from('murid').select('*').order('kelas').order('nama');
-      if(!error&&data&&data.length>0){
-        murid=data;
-        // Sync to localStorage as backup
+      if(!error){
+        // Supabase berjaya — guna data dari sana (walaupun kosong)
+        murid=data||[];
         localStorage.setItem('muridCache',JSON.stringify(murid));
         return;
       }
-    }catch(e){console.warn('Supabase murid load failed:',e)}
+    }catch(e){console.warn('Supabase gagal:',e)}
   }
-  // Fallback: localStorage cache
+  // Fallback: localStorage (offline mode)
   try{
     const cached=localStorage.getItem('muridCache');
-    if(cached){const parsed=JSON.parse(cached);if(parsed&&parsed.length>0){murid=parsed;return}}
+    if(cached){
+      const parsed=JSON.parse(cached);
+      murid=Array.isArray(parsed)?parsed:[];
+      return;
+    }
   }catch(e){}
-  // Last resort: demo data
-  murid=demoMurid();
-  localStorage.setItem('muridCache',JSON.stringify(murid));
+  // Tiada data langsung — kosong sahaja (BUKAN demo data)
+  murid=[];
 }
 function demoMurid(){return[
   {id:1,nama:'Ahmad Hakimi bin Razali',kelas:'1A',jantina:'L',rmt:true},{id:2,nama:'Nurul Ain binti Hassan',kelas:'1A',jantina:'P',rmt:false},
