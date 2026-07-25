@@ -1183,19 +1183,41 @@ async function impPukal(){
   const raw=g('pDat').value.trim(),okl=g('pKl').value;
   if(!raw){toast('Tiada data untuk diimport');return}
   const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
-  let ok=0,fail=0,errs=[];
+  let ok=0,skip=0,fail=0,errs=[],skipNames=[];
+
   for(const line of lines){
     const p=line.split(',').map(x=>x.trim());
     const nm=p[0],kl=okl||p[1]||'',jt=(p[2]||'L').toUpperCase()==='P'?'P':'L';
     const rv=(p[3]||'').toLowerCase(),rmt=rv==='ya'||rv==='y'||rv==='true'||rv==='1';
-    if(!nm||!kl||!KELAS.find(k=>k.id===kl)){fail++;errs.push(`"${line}"`);continue}
+
+    if(!nm){fail++;errs.push(`Baris kosong`);continue}
+    if(!kl||!KELAS_DEFAULT.find(k=>k.id===kl)){fail++;errs.push(`"${nm}" — kelas tidak sah`);continue}
+
+    // Semak duplikasi
+    const isDup=murid.some(m=>m.nama.trim().toLowerCase()===nm.toLowerCase()&&m.kelas===kl);
+    if(isDup){skip++;skipNames.push(`${nm} (${kl})`);continue}
+
     const obj={nama:nm,kelas:kl,jantina:jt,rmt};
-    if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('murid').insert([obj]).select();if(data&&data[0]){murid.push(data[0]);ok++;continue}}catch(e){}}
-    murid.push({...obj,id:Date.now()+ok});ok++;
+    let inserted=false;
+    if(sb&&!SB_URL.includes('YOUR')){
+      try{
+        const{data,error}=await sb.from('murid').insert([obj]).select();
+        if(!error&&data&&data[0]){murid.push(data[0]);inserted=true;ok++;}
+      }catch(e){console.warn(e)}
+    }
+    if(!inserted){murid.push({...obj,id:Date.now()+ok+Math.random()});ok++;}
   }
-  buildKelas();
-  g('pRes').innerHTML=`<div class="${ok>0?'res-ok':'res-err'}">${ok} murid berjaya diimport${fail?`<br>${fail} gagal: ${errs.join(', ')}`:''}</div>`;
-  if(ok>0){g('pDat').value='';toast(`${ok} murid berjaya diimport`)}
+
+  localStorage.setItem('muridCache',JSON.stringify(murid));
+  buildKelas();loadAL();
+
+  let msg=`<strong>${ok} murid baru</strong> berjaya ditambah`;
+  if(skip>0) msg+=`<br><span style="color:var(--t2)">⚠ ${skip} dilangkau (sudah wujud): ${skipNames.slice(0,5).join(', ')}${skipNames.length>5?'...':''}</span>`;
+  if(fail>0) msg+=`<br><span style="color:var(--pk2)">✗ ${fail} gagal: ${errs.slice(0,3).join('; ')}</span>`;
+
+  g('pRes').innerHTML=`<div class="${ok>0?'res-ok':'res-err'}" style="margin-top:10px">${msg}</div>`;
+  if(ok>0){g('pDat').value='';toast(`✓ ${ok} murid baru ditambah — data sedia ada tidak terjejas`)}
+  else if(skip>0&&fail===0){toast('Semua murid sudah wujud — tiada pertambahan')}
 }
 function openE(id){const m=murid.find(x=>x.id===id);if(!m)return;g('eId').value=id;g('eNm').value=m.nama;g('eKl').value=m.kelas;g('eJt').value=m.jantina;g('eRmt').checked=m.rmt;g('eModal').style.display='flex'}
 function closeE(){g('eModal').style.display='none'}
@@ -1301,25 +1323,63 @@ async function impExcel(){
   if(!excelParsedData.length){toast('Tiada data Excel untuk diimport');return}
   const okl=g('pKlExcel').value;
   const res=g('excelRes');
-  res.innerHTML='<div style="font-size:12px;color:var(--t2);padding:8px">Sedang mengimport...</div>';
-  let ok=0,fail=0,errs=[];
+  res.innerHTML='<div style="font-size:12px;color:var(--t2);padding:8px">Sedang mengimport... jangan tutup halaman ini.</div>';
+  let ok=0,skip=0,fail=0,errs=[],skipNames=[];
+
   for(const r of excelParsedData){
     const nm=String(r[0]||'').trim();
     const kl=okl||String(r[1]||'').trim().toUpperCase();
     const jt=(String(r[2]||'L')).toUpperCase()==='P'?'P':'L';
     const rv=(String(r[3]||'')).toLowerCase();
     const rmt=rv==='ya'||rv==='y'||rv==='true'||rv==='1';
-    if(!nm||!kl||!KELAS_DEFAULT.find(k=>k.id===kl)){fail++;errs.push(`"${nm||'?'}" — kelas "${kl||'?'}" tidak sah`);continue}
+
+    // Validasi
+    if(!nm){fail++;errs.push('Baris kosong');continue}
+    if(!kl||!KELAS_DEFAULT.find(k=>k.id===kl)){fail++;errs.push(`"${nm}" — kelas "${kl||'?'}" tidak sah`);continue}
+
+    // Semak duplikasi nama dalam kelas yang sama
+    const isDup=murid.some(m=>m.nama.trim().toLowerCase()===nm.toLowerCase()&&m.kelas===kl);
+    if(isDup){skip++;skipNames.push(`${nm} (${kl})`);continue}
+
+    // Insert ke Supabase atau local
     const obj={nama:nm,kelas:kl,jantina:jt,rmt};
+    let inserted=false;
     if(sb&&!SB_URL.includes('YOUR')){
-      try{const{data,error}=await sb.from('murid').insert([obj]).select();if(!error&&data&&data[0]){murid.push(data[0]);ok++;continue}}catch(e){}
+      try{
+        const{data,error}=await sb.from('murid').insert([obj]).select();
+        if(!error&&data&&data[0]){
+          murid.push(data[0]); // guna ID dari Supabase
+          inserted=true;
+          ok++;
+        }
+      }catch(e){console.warn('Supabase insert error:',e)}
     }
-    murid.push({...obj,id:Date.now()+ok});ok++;
+    if(!inserted){
+      // Fallback local — guna timestamp unik
+      murid.push({...obj,id:Date.now()+ok+Math.random()});
+      ok++;
+    }
   }
+
   localStorage.setItem('muridCache',JSON.stringify(murid));
   buildKelas();loadAL();
-  res.innerHTML=`<div class="${ok>0?'res-ok':'res-err'}">${ok} murid berjaya diimport dari Excel${fail?`<br><span style="font-size:11px">${fail} gagal: ${errs.slice(0,3).join('; ')}${errs.length>3?'...':''}</span>`:''}</div>`;
-  if(ok>0){excelParsedData=[];g('excelPreview').style.display='none';g('btnImpExcel').style.display='none';g('excelFileName').style.display='none';g('excelFileIn').value='';toast(`${ok} murid berjaya diimport dari Excel`)}
+
+  let msg=`<strong>${ok} murid baru</strong> berjaya ditambah`;
+  if(skip>0) msg+=`<br><span style="color:var(--t2)">⚠ ${skip} dilangkau (sudah wujud): ${skipNames.slice(0,5).join(', ')}${skipNames.length>5?'...':''}</span>`;
+  if(fail>0) msg+=`<br><span style="color:var(--pk2)">✗ ${fail} gagal: ${errs.slice(0,3).join('; ')}${errs.length>3?'...':''}</span>`;
+
+  res.innerHTML=`<div class="${ok>0||skip>0?'res-ok':'res-err'}" style="margin-top:10px">${msg}</div>`;
+
+  if(ok>0){
+    excelParsedData=[];
+    g('excelPreview').style.display='none';
+    g('btnImpExcel').style.display='none';
+    g('excelFileName').style.display='none';
+    g('excelFileIn').value='';
+    toast(`✓ ${ok} murid baru ditambah — data sedia ada tidak terjejas`);
+  } else if(skip>0&&fail===0){
+    toast(`Semua murid sudah wujud — tiada pertambahan`);
+  }
 }
 
 /* ── RESET TAHUNAN ── */
@@ -1572,7 +1632,10 @@ async function saveEK(){
   KELAS=getKelas();rebuildKelasSelects();buildKelas();renderKelasAdmin();renderSesiCfg();
   g('LOV').style.display='none';
   closeEK();
-  toast(`Kelas ${panjang}${idBerubah?` (${idLama} → ${idBaru})`:''}  berjaya dikemas kini${idBerubah?` — murid auto dikemas kini ke ${idBaru}`:''}`)
+  const toastMsg=idBerubah
+    ?'Kelas '+panjang+' ('+idLama+' → '+idBaru+') berjaya dikemas kini — murid auto dikemas kini ke '+idBaru
+    :'Kelas '+panjang+' berjaya dikemas kini';
+  toast(toastMsg);
 }
 
 // Delete kelas modal
