@@ -785,19 +785,52 @@ async function loadConfigFromSupabase(){
   }catch(e){console.warn('loadConfigFromSupabase:',e)}
 }
 
-// Load rekod kehadiran dari Supabase
+// Load rekod kehadiran dari Supabase — hanya 7 hari terkini semasa login
 async function loadCacheFromSupabase(){
   if(!sb||SB_URL.includes('YOUR'))return;
   try{
-    const{data,error}=await sb.from('kehadiran').select('*');
+    // Hanya ambil 7 hari terkini — cukup untuk kegunaan harian
+    const d7=new Date();d7.setDate(d7.getDate()-6);
+    const dari=`${d7.getFullYear()}-${String(d7.getMonth()+1).padStart(2,'0')}-${String(d7.getDate()).padStart(2,'0')}`;
+    const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').gte('tarikh',dari).order('tarikh',{ascending:false});
     if(error||!data)return;
-    cache={};
     data.forEach(r=>{
       if(!cache[r.tarikh])cache[r.tarikh]={};
       cache[r.tarikh][r.kelas]=r.data;
     });
     saveCache();
   }catch(e){console.warn('loadCacheFromSupabase:',e)}
+}
+
+// Load rekod untuk tarikh spesifik dari Supabase (on-demand)
+async function loadCacheForDate(tarikh){
+  if(!sb||SB_URL.includes('YOUR'))return;
+  if(cache[tarikh]&&Object.keys(cache[tarikh]).length>0)return; // sudah ada dalam cache
+  try{
+    const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',tarikh);
+    if(error||!data)return;
+    if(!cache[tarikh])cache[tarikh]={};
+    data.forEach(r=>{cache[tarikh][r.kelas]=r.data});
+    saveCache();
+  }catch(e){console.warn('loadCacheForDate:',e)}
+}
+
+// Load rekod untuk bulan tertentu (untuk Panel RMT)
+async function loadCacheForMonth(tahun,bulan){
+  if(!sb||SB_URL.includes('YOUR'))return;
+  const ms=String(bulan+1).padStart(2,'0');
+  const dari=`${tahun}-${ms}-01`;
+  const lastDay=new Date(tahun,bulan+1,0).getDate();
+  const hingga=`${tahun}-${ms}-${lastDay}`;
+  try{
+    const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').gte('tarikh',dari).lte('tarikh',hingga);
+    if(error||!data)return;
+    data.forEach(r=>{
+      if(!cache[r.tarikh])cache[r.tarikh]={};
+      cache[r.tarikh][r.kelas]=r.data;
+    });
+    saveCache();
+  }catch(e){console.warn('loadCacheForMonth:',e)}
 }
 // Sort kelas ikut abjad A-Z (ID kelas)
 function sortKelas(arr){return [...arr].sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true,sensitivity:'base'}))}
@@ -950,17 +983,23 @@ async function enterApp(r){
   if(r==='admin'){g('aNv').style.display='block';g('uDot').textContent='A';g('uName').textContent='Admin';g('uRole').textContent='Akses Penuh'}
   else{g('uDot').textContent='G';g('uName').textContent='Guru';g('uRole').textContent='Akses Terhad'}
   g('LOV').style.display='flex';
-  // Load semua data dari Supabase (sumber tunggal kebenaran)
+
+  // Fasa 1: Load config & murid SERENTAK (paling kritikal untuk UI)
   await Promise.all([
     loadConfigFromSupabase(),
-    loadCacheFromSupabase()
+    loadMurid()
   ]);
   KELAS=getKelas();rebuildKelasSelects();
-  await loadMurid();
+  buildKelas();
+  // Boleh guna sistem sekarang — sembunyi loading
   g('LOV').style.display='none';
-  buildKelas();tick();
-  // Mula live sync — semua peranti akan auto update
+  tick();
   startLiveSync();
+
+  // Fasa 2: Load cache 7 hari terkini di background (tidak block UI)
+  loadCacheFromSupabase().then(()=>{
+    buildKelas(); // refresh badge 'Selesai' pada kelas
+  });
 }
 function logout(){
   // Henti live sync
@@ -1176,15 +1215,27 @@ function renderDashLive(){
 async function renderDash(){
   const t=g('dDate').value,div=g('dCont');
   if(!t){div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="empty-t">Pilih tarikh untuk lihat dashboard</div></div>';return}
-  if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('kehadiran').select('*').eq('tarikh',t);if(data&&data.length){if(!cache[t])cache[t]={};data.forEach(r=>{cache[t][r.kelas]=r.data});saveCache()}}catch(e){}}
+  // Render dari cache dulu (serta-merta)
+  renderDashHTML(t);
+  // Fetch dari Supabase jika data tarikh ini belum ada dalam cache
+  if(sb&&!SB_URL.includes('YOUR')){
+    const hadaCache=cache[t]&&Object.keys(cache[t]).length>0;
+    if(!hadaCache){
+      await loadCacheForDate(t);
+      renderDashHTML(t); // re-render selepas fetch
+    }
+  }
+}
+function renderDashHTML(t){
+  const div=g('dCont');if(!div)return;
   const rh=cache[t]||{},list=Object.values(rh),n=list.length;
   const tM=list.reduce((a,r)=>a+r.jumlah,0),tH=list.reduce((a,r)=>a+r.hadir,0),tR=list.reduce((a,r)=>a+r.rmtHadir,0);
   const isSD=isSchoolDay(t);
 
   let html=`<div class="dbanner">
     <div><div class="db-title">${fmtLong(t)}${!isSD?' <span style="background:#fff8e1;color:#e65100;font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid #ffe082;margin-left:6px;font-weight:700">Cuti</span>':''}</div>
-    <div class="db-sub">${n===0?'Tiada kelas diisi':n<5?`${n} daripada 5 kelas diisi`:'Semua 5 kelas telah diisi'}</div></div>
-    <span class="${n===5?'tag tag-g':'tag tag-a'}">${n}/5 kelas</span></div>
+    <div class="db-sub">${n===0?'Tiada kelas diisi':n<KELAS.length?`${n} daripada ${KELAS.length} kelas diisi`:`Semua ${KELAS.length} kelas telah diisi`}</div></div>
+    <span class="${n===KELAS.length?'tag tag-g':'tag tag-a'}">${n}/${KELAS.length} kelas</span></div>
   <div class="sr" style="margin-bottom:13px">
     <div class="st st-bl"><div class="sn">${tM}</div><div class="sl">Jumlah Murid</div></div>
     <div class="st st-gn"><div class="sn">${tH}</div><div class="sl">Hadir</div></div>
@@ -1241,12 +1292,11 @@ async function renderDash(){
   });
 
   div.innerHTML=html;
-
-  // Build pie charts
+  // Render carta pai
   setTimeout(()=>{
     buildPie('pieP','piePnum','piePleg',kPagi,rh,'pagi');
     buildPie('pieTg','pieTnum','pieTleg',kPetang,rh,'petang');
-  },50);
+  },30);
 }
 
 function buildPie(canvasId,numId,legId,kelasList,rh,label){
@@ -1301,6 +1351,12 @@ function togKD(id,hdr){const b=g(id),op=b.classList.contains('open');b.classList
 function renderRMT(){
   const bulan=parseInt(g('rB').value),tahun=parseInt(g('rY').value);
   if(isNaN(bulan)||isNaN(tahun))return;
+  // Load bulan ini dari Supabase jika belum ada dalam cache (background)
+  loadCacheForMonth(tahun,bulan).then(()=>_renderRMTTable(bulan,tahun));
+  // Render dari cache sedia ada dulu (serta-merta)
+  _renderRMTTable(bulan,tahun);
+}
+function _renderRMTTable(bulan,tahun){
   const fw=g('rF');
   if(!fw.dataset.built){
     fw.innerHTML='';
