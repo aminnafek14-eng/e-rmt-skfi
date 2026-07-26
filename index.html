@@ -336,15 +336,33 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
     <div class="l-icon p"><svg viewBox="0 0 24 24" fill="none" stroke="#c04868" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
   </div>
   <div class="l-title"><h1>Sistem Kehadiran</h1><p>SK Felda Inas — Murid &amp; RMT</p></div>
-  <div class="ltabs">
-    <button class="ltab active" onclick="swMode('guru',this)">Guru</button>
-    <button class="ltab" onclick="swMode('admin',this)">Admin</button>
+
+  <!-- GURU BUTTON — besar dan jelas -->
+  <a href="form.html" class="btnlogin" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;margin-bottom:12px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" width="18" height="18"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+    Isi Kehadiran (Guru)
+  </a>
+
+  <!-- DIVIDER -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <div style="flex:1;height:1px;background:var(--bd)"></div>
+    <span style="font-size:11px;color:var(--t3)">atau</span>
+    <div style="flex:1;height:1px;background:var(--bd)"></div>
   </div>
-  <div id="iGuru" class="ibox g"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Guru — klik untuk ke halaman isi kehadiran yang laju dan ringan.</span></div>
-  <div id="iAdmin" class="ibox p" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><span>Panel admin memerlukan kata laluan khas untuk akses penuh.</span></div>
-  <div id="passW" style="display:none"><div class="ff"><label>Kata Laluan Admin</label><input type="password" id="ap" placeholder="Masukkan kata laluan..." onkeydown="if(event.key==='Enter')doLogin()"></div><div id="lerr" class="errmsg" style="display:none">Kata laluan salah. Sila cuba lagi.</div></div>
-  <button class="btnlogin" onclick="doLogin()"><span id="lbtxt">Masuk sebagai Guru</span></button>
-  <div class="lfooter">Sistem Kehadiran Murid &amp; RMT v2.0 &nbsp;·&nbsp; SK Felda Inas<br><span style="margin-top:3px;display:block">Disediakan oleh: <strong>Cg Amnzz</strong> @ 2026</span></div>
+
+  <!-- ADMIN SECTION -->
+  <div id="adminSection">
+    <div class="ff">
+      <label>Kata Laluan Admin</label>
+      <input type="password" id="ap" placeholder="Masukkan kata laluan admin..." onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="lerr" class="errmsg" style="display:none">Kata laluan salah. Sila cuba lagi.</div>
+    <button class="btnlogin" onclick="doLogin()" style="background:linear-gradient(135deg,#5a6a8a,#3a4a6a)">
+      Masuk sebagai Admin
+    </button>
+  </div>
+
+  <div class="lfooter">Sistem Kehadiran Murid &amp; RMT v2.0 &nbsp;·&nbsp; SK Felda Inas<br><strong>Disediakan oleh: Cg Amnzz @ 2026</strong></div>
 </div>
 </div>
 
@@ -1009,18 +1027,14 @@ function rebuildKelasSelects(){
 /* LOGIN */
 let lMode='guru';
 function swMode(m,btn){
-  lMode=m;document.querySelectorAll('.ltab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');
-  g('iGuru').style.display=m==='guru'?'flex':'none';g('iAdmin').style.display=m==='admin'?'flex':'none';
-  g('passW').style.display=m==='admin'?'block':'none';g('lbtxt').textContent=m==='guru'?'Masuk sebagai Guru':'Masuk sebagai Admin';
-  g('lerr').style.display='none';
+  // Kept for compatibility with auto-switch from form.html
+  lMode=m;
 }
 function doLogin(){
-  if(lMode==='guru'){
-    // Guru terus ke form.html — halaman ringan khusus isi kehadiran
-    window.location.href='form.html';
-  } else {
-    g('ap').value===ADMIN_PASS?enterApp('admin'):(g('lerr').style.display='block');
-  }
+  // Hanya admin yang login di sini — guru guna link terus ke form.html
+  const pass=g('ap')?.value||'';
+  if(pass===ADMIN_PASS){enterApp('admin')}
+  else{const el=g('lerr');if(el)el.style.display='block'}
 }
 async function enterApp(r){
   role=r;g('LS').style.display='none';g('APP').style.display='block';
