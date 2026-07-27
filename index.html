@@ -995,8 +995,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     setTimeout(()=>{const t=document.querySelectorAll('.ltab');if(t.length>1)swMode('admin',t[1])},50);
   }
   if(!SB_URL.includes('YOUR')){
-    localStorage.removeItem('kelasCfg');
-    localStorage.removeItem('sesiCfg');
+    // Hanya buang muridCache — biar kelasCfg/sesiCfg kekal sebagai fallback
     localStorage.removeItem('muridCache');
   }
   loadCache();loadKelasConfig();loadSesiConfig();KELAS=getKelas();rebuildKelasSelects();
@@ -1126,24 +1125,26 @@ function showPg(id,btn){
   g('pgT').textContent=pgTitles[id]||id;
   if(id==='kehadiran'){
     aUpdateTick();
-    // Tunjuk loading dulu
+    // Pastikan KELAS ada — jika tak, load semula dari config
+    if(!KELAS||KELAS.length===0){KELAS=getKelas();}
     const grid=g('aKG');
     if(grid)grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--t3);font-size:13px">Memuatkan data kehadiran...</div>';
-    // Load cache hari ini dari Supabase
+    // Sentiasa fetch terus dari Supabase untuk data paling terkini
     const today=isoToday();
-    if(sb&&!SB_URL.includes('YOUR')){
-      sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',today)
-        .then(({data,error})=>{
-          if(!error&&data&&data.length){
+    const doLoad=async()=>{
+      if(sb&&!SB_URL.includes('YOUR')){
+        try{
+          const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',today);
+          if(!error&&data){
             if(!cache[today])cache[today]={};
             data.forEach(r=>{cache[today][r.kelas]=r.data});
             saveCache();
           }
-          buildAdminKelas();
-        }).catch(()=>buildAdminKelas());
-    } else {
+        }catch(e){console.warn('load kehadiran error:',e)}
+      }
       buildAdminKelas();
-    }
+    };
+    doLoad();
   }
   if(id==='dashboard'){const dd=g('dDate');if(dd&&!dd.value)dd.value=isoToday();renderDash()}
   if(id==='panel-rmt')renderRMT();
