@@ -1269,32 +1269,65 @@ function renderDashLive(){
   const rh=cache[t]||{};
   const list=Object.values(rh),n=list.length;
   const tM=list.reduce((a,r)=>a+r.jumlah,0),tH=list.reduce((a,r)=>a+r.hadir,0),tR=list.reduce((a,r)=>a+r.rmtHadir,0);
-  // Update stat tiles jika ada
-  const snEls=g('dCont').querySelectorAll('.sn');
+
+  // Update stat tiles
+  const snEls=g('dCont').querySelectorAll(':scope > .sr > .st .sn');
   if(snEls.length>=4){snEls[0].textContent=tM;snEls[1].textContent=tH;snEls[2].textContent=tR;snEls[3].textContent=tM-tH}
-  // Update banner kelas count
+
+  // Update banner
   const dbSub=g('dCont').querySelector('.db-sub');
-  if(dbSub) dbSub.textContent=n===0?'Tiada kelas diisi':n<KELAS.length?`${n} daripada ${KELAS.length} kelas diisi`:`Semua ${KELAS.length} kelas telah diisi`;
+  if(dbSub)dbSub.textContent=n===0?'Tiada kelas diisi':n<KELAS.length?`${n} daripada ${KELAS.length} kelas diisi`:`Semua ${KELAS.length} kelas telah diisi`;
   const tagEl=g('dCont').querySelector('.tag');
   if(tagEl){tagEl.textContent=`${n}/${KELAS.length} kelas`;tagEl.className=n===KELAS.length?'tag tag-g':'tag tag-a'}
-  // Rebuild carta pai sahaja
+
+  // Update carta pai
   const kPagi=KELAS.filter(k=>k.sesi==='pagi');
   const kPetang=KELAS.filter(k=>k.sesi==='petang');
   setTimeout(()=>{
     buildPie('pieP','piePnum','piePleg',kPagi,rh,'pagi');
     buildPie('pieTg','pieTnum','pieTleg',kPetang,rh,'petang');
   },10);
-  // Update butiran kelas jika accordion sudah terbuka
+
+  // Update setiap accordion kelas — sama ada terbuka atau tidak
   KELAS.forEach(k=>{
-    const body=g('kd'+k.id);
-    if(body&&body.classList.contains('open')){
-      const r=rh[k.id];
-      if(r){
-        const snList=body.querySelectorAll('.sn');
-        if(snList.length>=4){snList[0].textContent=r.hadir;snList[1].textContent=r.jumlah-r.hadir;snList[2].textContent=r.rmtHadir;snList[3].textContent=r.rmtJumlah-r.rmtHadir}
+    const body=g('kd'+k.id);if(!body)return;
+    const hdr=body.previousElementSibling;
+    const r=rh[k.id];
+    const pct=r?Math.round(r.hadir/r.jumlah*100):null;
+    const pc=pct===null?'':pct>=90?'pct-g':pct>=75?'pct-b':'pct-r';
+    const dc=pct===null?'#ccc':pct>=90?'var(--mg)':pct>=75?'var(--bl)':'var(--pk)';
+    const bc=pct===null?'var(--bd)':pct>=90?'var(--mg)':pct>=75?'var(--bl)':'var(--pk)';
+
+    // Update header dot & percent
+    if(hdr){
+      const dot=hdr.querySelector('.kdd');if(dot)dot.style.background=dc;
+      const pctEl=hdr.querySelector('.kdpct');
+      if(pctEl){pctEl.textContent=pct!==null?pct+'%':'—';pctEl.className='kdpct '+pc;}
+    }
+
+    // Update body jika terbuka
+    if(body.classList.contains('open')){
+      if(!r){
+        body.innerHTML='<div style="font-size:12px;color:var(--t3);font-style:italic;padding:4px 0">Kehadiran belum diisi bagi kelas ini.</div>';
+      } else {
+        const aC=r.namaAbsen&&r.namaAbsen.length?r.namaAbsen.map(m=>`<span class="chip ${m.rmt?'chip-rmt':'chip-r'}">${m.nama.split(' ').slice(0,2).join(' ')}${m.rmt?' (RMT)':''}</span>`).join(''):'<span style="font-size:12px;color:var(--t3);font-style:italic">Semua murid hadir</span>';
+        const rC=r.namaRmtAbsen&&r.namaRmtAbsen.length?r.namaRmtAbsen.map(m=>`<span class="chip chip-rmt">${m.nama.split(' ').slice(0,2).join(' ')}</span>`).join(''):'<span style="font-size:12px;color:var(--t3);font-style:italic">Semua RMT hadir</span>';
+        body.innerHTML=`<div class="bw"><div class="bf" style="width:${pct}%;background:${bc}"></div></div>
+          <div class="sr" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px">
+            <div class="st st-gn" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.hadir}</div><div class="sl">Hadir</div></div>
+            <div class="st st-pk" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.jumlah-r.hadir}</div><div class="sl">T.Hadir</div></div>
+            <div class="st st-co" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.rmtHadir}</div><div class="sl">RMT Hadir</div></div>
+            <div class="st st-pk" style="padding:9px 5px"><div class="sn" style="font-size:19px">${r.rmtJumlah-r.rmtHadir}</div><div class="sl">RMT T.Hadir</div></div>
+          </div>
+          <div style="margin-bottom:9px"><div class="slbl">Murid Tidak Hadir</div><div class="cw">${aC}</div></div>
+          <div><div class="slbl">RMT Tidak Hadir</div><div class="cw">${rC}</div></div>
+          <div style="font-size:11px;color:var(--t3);margin-top:9px">Dikemas kini: ${r.masa}</div>`;
       }
     }
   });
+
+  // Update admin kelas grid jika page kehadiran admin aktif
+  if(g('page-kehadiran')?.classList.contains('active'))buildAdminKelas();
 }
 async function renderDash(){
   const t=g('dDate').value,div=g('dCont');
@@ -1912,13 +1945,40 @@ function buildAdminKelas(){
   const grid=g('aKG');if(!grid)return;
   grid.innerHTML='';
   const today=isoToday();
-  KELAS.forEach(k=>{
+  // Tunjuk HANYA kelas yang belum diisi kehadiran hari ini
+  const kelasBelum=KELAS.filter(k=>!(cache[today]&&cache[today][k.id]));
+  const kelasDone=KELAS.filter(k=>!!(cache[today]&&cache[today][k.id]));
+
+  if(kelasBelum.length===0){
+    // Semua kelas dah diisi
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px 16px;background:var(--mgp);border-radius:var(--rs);border:1px solid var(--mgp3)">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      <div style="font-size:14px;font-weight:700;color:var(--mg2)">Semua ${KELAS.length} kelas telah diisi kehadiran!</div>
+      <div style="font-size:12px;color:var(--t3);margin-top:4px">Tiada kelas yang memerlukan bantuan admin.</div>
+    </div>`;
+    // Sembunyikan seksyen murid jika kelas semua selesai
+    if(aKelasAktif&&(cache[today]&&cache[today][aKelasAktif])){
+      g('aSeksyen').style.display='none';g('aEmptyK').style.display='block';aKelasAktif='';
+    }
+    return;
+  }
+
+  // Info berapa kelas dah selesai
+  if(kelasDone.length>0){
+    const infoDiv=document.createElement('div');
+    infoDiv.style.cssText='grid-column:1/-1;padding:8px 12px;background:var(--mgp2);border-radius:var(--rs);border:1px solid var(--mgp3);font-size:12px;color:var(--mg2);margin-bottom:4px;display:flex;align-items:center;gap:6px';
+    infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/></svg>
+      <strong>${kelasDone.length}/${KELAS.length} kelas</strong> telah diisi. Kelas berikut masih perlu diisi:`;
+    grid.appendChild(infoDiv);
+  }
+
+  // Papar kelas yang belum diisi sahaja
+  kelasBelum.forEach(k=>{
     const mk=murid.filter(m=>m.kelas===k.id),rmt=mk.filter(m=>m.rmt).length;
-    const done=!!(cache[today]&&cache[today][k.id]);
     const b=document.createElement('button');
-    b.className='kb'+(done?' done':'');b.dataset.k=k.id;
+    b.className='kb';b.dataset.k=k.id;
     b.onclick=()=>aPilihK(k.id,b);
-    b.innerHTML=`${done?`<span class="kb-done-tick">✓</span>`:''}<div class="kb-id">${k.id}</div><div class="kb-nm">${k.panjang}</div>${rmt?`<div class="kb-rmt">${rmt} RMT</div>`:''}`;
+    b.innerHTML=`<div class="kb-id">${k.id}</div><div class="kb-nm">${k.panjang}</div>${rmt?`<div class="kb-rmt">${rmt} RMT</div>`:''}`;
     grid.appendChild(b);
   });
 }
@@ -2000,7 +2060,9 @@ function aHantarK(){
     if(window.requestIdleCallback)requestIdleCallback(()=>saveCache());
     else setTimeout(()=>saveCache(),50);
     buildAdminKelas();aUpdateBtns();
-    if(sb&&!SB_URL.includes('YOUR'))sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:aKelasAktif,data:rec},{onConflict:'tarikh,kelas'}).then(()=>{}).catch(e=>console.warn(e));
+    // Kelas yang baru diisi akan hilang dari grid — sembunyikan seksyen
+    g('aSeksyen').style.display='none';g('aEmptyK').style.display='block';aKelasAktif='';
+    if(sb&&!SB_URL.includes('YOUR'))sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:aKelasAktif||rec.kelas,data:rec},{onConflict:'tarikh,kelas'}).then(()=>{}).catch(e=>console.warn(e));
   },0);
 }
 
