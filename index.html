@@ -450,7 +450,21 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
 
 <!-- REKOD -->
 <div class="page" id="page-rekod">
-  <div class="card"><div class="clbl">Rekod Kehadiran Harian</div><div id="rekL"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Tiada rekod lagi</div></div></div></div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="clbl">Pilih Tarikh</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="date" class="fi" id="rekDate" style="flex:1;min-width:160px" onchange="renderRekod()">
+      <button onclick="rekToday()" style="padding:9px 16px;background:var(--mgp);border:1.5px solid var(--mgp3);border-radius:var(--rs);color:var(--mg2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Hari Ini</button>
+      <button onclick="rekNav(-1)" style="padding:9px 12px;background:var(--cream);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--t2);font-size:13px;cursor:pointer">◀</button>
+      <button onclick="rekNav(1)" style="padding:9px 12px;background:var(--cream);border:1.5px solid var(--bd);border-radius:var(--rs);color:var(--t2);font-size:13px;cursor:pointer">▶</button>
+    </div>
+  </div>
+  <div id="rekL">
+    <div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <div class="empty-t">Pilih tarikh untuk lihat rekod kehadiran</div>
+    </div>
+  </div>
 </div>
 
 <!-- ADMIN -->
@@ -1121,7 +1135,7 @@ function showPg(id,btn){
   }
   if(id==='dashboard'){const dd=g('dDate');if(dd&&!dd.value)dd.value=isoToday();renderDash()}
   if(id==='panel-rmt')renderRMT();
-  if(id==='rekod')renderRekod();
+  if(id==='rekod'){const rd=g('rekDate');if(rd&&!rd.value)rd.value=isoToday();renderRekod()}
   if(id==='admin')loadAL();
   closeSB();
 }
@@ -1529,26 +1543,100 @@ function _renderRMTTable(bulan,tahun){
 }
 
 /* REKOD */
+function rekToday(){const d=g('rekDate');if(d){d.value=isoToday();renderRekod()}}
+function rekNav(arah){
+  const d=g('rekDate');if(!d||!d.value)return;
+  const dt=new Date(d.value+'T00:00:00');
+  dt.setDate(dt.getDate()+arah);
+  d.value=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  renderRekod();
+}
+
 async function renderRekod(){
-  if(sb&&!SB_URL.includes('YOUR')){try{const{data}=await sb.from('kehadiran').select('*').order('tarikh',{ascending:false});if(data&&data.length){data.forEach(r=>{if(!cache[r.tarikh])cache[r.tarikh]={};cache[r.tarikh][r.kelas]=r.data});saveCache()}}catch(e){}}
+  const t=g('rekDate')?.value;
   const div=g('rekL');
-  const all=Object.entries(cache).sort((a,b)=>b[0].localeCompare(a[0]));
-  if(!all.length){div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Tiada rekod lagi</div></div>';return}
-  div.innerHTML='';
-  all.forEach(([t,rh])=>{
-    const list=Object.values(rh),belum=KELAS.filter(k=>!rh[k.id]);
-    const w=document.createElement('div');
-    const isSD=isSchoolDay(t);
-    w.innerHTML=`<div class="rdh">${fmtLong(t)}${!isSD?' <span style="background:#fff8e1;color:#e65100;font-size:10px;padding:1px 7px;border-radius:8px;border:1px solid #ffe082">Cuti</span>':''} · ${list.length}/${KELAS.length} kelas</div>`;
-    list.forEach(r=>{
-      const pct=Math.round(r.hadir/r.jumlah*100),pc=pct>=90?'pct-g':pct>=75?'pct-b':'pct-r';
-      const aC=r.namaAbsen&&r.namaAbsen.length?r.namaAbsen.map(m=>`<span class="chip ${m.rmt?'chip-rmt':'chip-r'}" style="font-size:10px;padding:2px 7px">${m.nama.split(' ')[0]}${m.rmt?' (R)':''}</span>`).join(''):'<span style="font-size:11px;color:var(--t3);font-style:italic">Semua hadir</span>';
-      const rC=r.namaRmtAbsen&&r.namaRmtAbsen.length?r.namaRmtAbsen.map(m=>`<span class="chip chip-rmt" style="font-size:10px;padding:2px 7px">${m.nama.split(' ')[0]}</span>`).join(''):'<span style="font-size:11px;color:var(--t3);font-style:italic">Semua RMT hadir</span>';
-      w.innerHTML+=`<div class="ri"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:700">${r.namaKelas}</span><span class="kdpct ${pc}">${pct}% (${r.hadir}/${r.jumlah})</span></div><div style="margin-bottom:2px"><span style="font-size:10px;font-weight:700;color:var(--t3)">TIDAK HADIR: </span>${aC}</div><div><span style="font-size:10px;font-weight:700;color:var(--t3)">RMT TIDAK HADIR: </span>${rC}</div></div>`;
-    });
-    if(belum.length)w.innerHTML+=`<div style="padding:7px 11px;background:var(--cream);border-radius:var(--rs);border:1px dashed var(--bd);margin-top:4px;font-size:11px;color:var(--t3)">Belum diisi: ${belum.map(k=>`<span style="background:#fff8e1;color:#e65100;padding:2px 7px;border-radius:8px;border:1px solid #ffe082;font-size:10px">${k.panjang}</span>`).join(' ')}</div>`;
-    div.appendChild(w);
+  if(!t){
+    div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Pilih tarikh untuk lihat rekod kehadiran</div></div>';
+    return;
+  }
+  // Tunjuk loading
+  div.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3)"><div style="width:28px;height:28px;border:3px solid var(--bd);border-top-color:var(--mg);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Memuatkan rekod...</div>';
+
+  // Load dari Supabase jika belum ada dalam cache
+  if(sb&&!SB_URL.includes('YOUR')){
+    try{
+      const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',t);
+      if(!error&&data&&data.length){
+        if(!cache[t])cache[t]={};
+        data.forEach(r=>{cache[t][r.kelas]=r.data});
+        saveCache();
+      }
+    }catch(e){console.warn('renderRekod fetch error:',e)}
+  }
+
+  const rh=cache[t]||{};
+  const list=Object.values(rh);
+  const isSD=isSchoolDay(t);
+
+  if(!list.length){
+    div.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><div class="empty-t">Tiada rekod kehadiran pada ${fmtLong(t)}${!isSD?' (Hari Cuti)':''}</div></div>`;
+    return;
+  }
+
+  // Header ringkasan hari
+  const tM=list.reduce((a,r)=>a+r.jumlah,0);
+  const tH=list.reduce((a,r)=>a+r.hadir,0);
+  const tR=list.reduce((a,r)=>a+r.rmtHadir,0);
+  const belum=KELAS.filter(k=>!rh[k.id]);
+
+  let html=`<div class="dbanner" style="margin-bottom:12px">
+    <div>
+      <div class="db-title">${fmtLong(t)}${!isSD?' <span style="background:#fff8e1;color:#e65100;font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid #ffe082;margin-left:6px;font-weight:700">Cuti</span>':''}</div>
+      <div class="db-sub">${list.length}/${KELAS.length} kelas diisi</div>
+    </div>
+    <span class="${list.length===KELAS.length?'tag tag-g':'tag tag-a'}">${list.length}/${KELAS.length} kelas</span>
+  </div>
+  <div class="sr" style="margin-bottom:12px">
+    <div class="st st-bl"><div class="sn">${tM}</div><div class="sl">Jumlah Murid</div></div>
+    <div class="st st-gn"><div class="sn">${tH}</div><div class="sl">Hadir</div></div>
+    <div class="st st-co"><div class="sn">${tR}</div><div class="sl">RMT Hadir</div></div>
+    <div class="st st-pk"><div class="sn">${tM-tH}</div><div class="sl">Tidak Hadir</div></div>
+  </div>
+  <div class="card">
+    <div class="clbl">Rekod Kehadiran Harian</div>`;
+
+  // Sort kelas ikut KELAS order
+  const sortedList=KELAS.filter(k=>rh[k.id]).map(k=>rh[k.id]);
+
+  sortedList.forEach(r=>{
+    const pct=r.jumlah>0?Math.round(r.hadir/r.jumlah*100):0;
+    const pc=pct>=90?'pct-g':pct>=75?'pct-b':'pct-r';
+    const bc=pct>=90?'var(--mg)':pct>=75?'var(--bl)':'var(--pk)';
+    const aC=r.namaAbsen&&r.namaAbsen.length
+      ?r.namaAbsen.map(m=>`<span class="chip ${m.rmt?'chip-rmt':'chip-r'}" style="font-size:10px;padding:2px 7px">${m.nama.split(' ')[0]}${m.rmt?' (R)':''}</span>`).join('')
+      :'<span style="font-size:11px;color:var(--t3);font-style:italic">Semua hadir</span>';
+    const rC=r.namaRmtAbsen&&r.namaRmtAbsen.length
+      ?r.namaRmtAbsen.map(m=>`<span class="chip chip-rmt" style="font-size:10px;padding:2px 7px">${m.nama.split(' ')[0]}</span>`).join('')
+      :'<span style="font-size:11px;color:var(--t3);font-style:italic">Semua RMT hadir</span>';
+    html+=`<div class="ri">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:13px;font-weight:700">${r.namaKelas}</span>
+        <span class="kdpct ${pc}">${pct}% (${r.hadir}/${r.jumlah})</span>
+      </div>
+      <div class="bw" style="margin-bottom:6px"><div class="bf" style="width:${pct}%;background:${bc}"></div></div>
+      <div style="margin-bottom:3px"><span style="font-size:10px;font-weight:700;color:var(--t3)">TIDAK HADIR: </span>${aC}</div>
+      <div><span style="font-size:10px;font-weight:700;color:var(--t3)">RMT TIDAK HADIR: </span>${rC}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px">Dikemas kini: ${r.masa||'—'}</div>
+    </div>`;
   });
+
+  if(belum.length){
+    html+=`<div style="padding:9px 12px;background:var(--cream);border-radius:var(--rs);border:1px dashed var(--bd);margin-top:8px;font-size:11px;color:var(--t3)">
+      Belum diisi: ${belum.map(k=>`<span style="background:#fff8e1;color:#e65100;padding:2px 7px;border-radius:8px;border:1px solid #ffe082;font-size:10px;margin-right:3px">${k.panjang}</span>`).join('')}
+    </div>`;
+  }
+  html+='</div>';
+  div.innerHTML=html;
 }
 
 /* ADMIN */
