@@ -1967,22 +1967,33 @@ function buildAdminKelas(){
   grid.innerHTML='';
   const today=isoToday();
 
-  // Jika KELAS belum diload, tunjuk loading
+  // DEBUG — papar maklumat dalam grid sementara
+  console.log('buildAdminKelas called');
+  console.log('KELAS length:', KELAS.length, KELAS.map(k=>k.id));
+  console.log('cache[today]:', cache[today]?Object.keys(cache[today]):'tiada');
+  console.log('today:', today);
+
+  // Jika KELAS belum diload
   if(!KELAS||KELAS.length===0){
-    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--t3);font-size:13px">Memuatkan senarai kelas...</div>`;
+    grid.innerHTML=`<div style="grid-column:1/-1;padding:16px;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--rs);font-size:13px;color:#e65100">
+      ⚠ Senarai kelas belum diload. Cuba refresh halaman atau semak sambungan Supabase.<br>
+      <small>KELAS.length = 0</small>
+    </div>`;
     return;
   }
 
-  // Kelas yang belum dan sudah diisi hari ini
-  const kelasBelum=KELAS.filter(k=>!(cache[today]&&cache[today][k.id]));
-  const kelasDone=KELAS.filter(k=>!!(cache[today]&&cache[today][k.id]));
+  const cacheKelas=cache[today]?Object.keys(cache[today]):[];
+  const kelasBelum=KELAS.filter(k=>!cacheKelas.includes(k.id));
+  const kelasDone=KELAS.filter(k=>cacheKelas.includes(k.id));
 
-  // Info status atas
+  console.log('kelasBelum:', kelasBelum.map(k=>k.id));
+  console.log('kelasDone:', kelasDone.map(k=>k.id));
+
+  // Info status
   const infoDiv=document.createElement('div');
   infoDiv.style.cssText='grid-column:1/-1;padding:9px 13px;border-radius:var(--rs);font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:6px';
 
   if(kelasBelum.length===0){
-    // Semua kelas dah diisi
     infoDiv.style.background='var(--mgp)';infoDiv.style.border='1px solid var(--mgp3)';infoDiv.style.color='var(--mg2)';
     infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/></svg><strong>Semua ${KELAS.length} kelas telah diisi kehadiran hari ini!</strong>`;
     grid.appendChild(infoDiv);
