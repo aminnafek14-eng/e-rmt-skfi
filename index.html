@@ -1012,28 +1012,34 @@ function doLogin(){
 async function enterApp(r){
   role=r;g('LS').style.display='none';g('APP').style.display='block';
   if(r==='admin'){g('aNv').style.display='block';g('uDot').textContent='A';g('uName').textContent='Admin';g('uRole').textContent='Akses Penuh';
-    // Tunjuk butang isi kehadiran untuk admin
     const nbKH=g('nbKH');if(nbKH)nbKH.style.display='flex';
+  } else {
+    g('uDot').textContent='G';g('uName').textContent='Guru';g('uRole').textContent='Akses Terhad';
   }
-  else{g('uDot').textContent='G';g('uName').textContent='Guru';g('uRole').textContent='Akses Terhad'}
-  g('LOV').style.display='flex';
 
-  // Fasa 1: Load config & murid SERENTAK (paling kritikal untuk UI)
-  await Promise.all([
-    loadConfigFromSupabase(),
-    loadMurid()
-  ]);
+  // Fasa 1: Load dari localStorage SERTA-MERTA (tiada network wait)
+  loadKelasConfig();loadSesiConfig();
+  const cachedMurid=localStorage.getItem('muridCache');
+  if(cachedMurid){try{murid=JSON.parse(cachedMurid)||[]}catch(e){murid=[]}}
   KELAS=getKelas();rebuildKelasSelects();
-  // Boleh guna sistem sekarang — sembunyi loading
+
+  // Tunjuk UI terus tanpa tunggu — guna data cache
   g('LOV').style.display='none';
   tick();
-  startLiveSync();
-  // Default ke dashboard dengan tarikh hari ini
   const ddEl=g('dDate');if(ddEl&&!ddEl.value)ddEl.value=isoToday();
   const dashBtn=document.querySelector('button.nb[onclick*="dashboard"]');
   showPg('dashboard',dashBtn);
-  // Fasa 2: Load cache 7 hari terkini di background
-  loadCacheFromSupabase().then(()=>{renderDash()});
+  startLiveSync();
+
+  // Fasa 2: Refresh dari Supabase di background — update UI bila siap
+  Promise.all([
+    loadConfigFromSupabase(),
+    loadMurid(),
+    loadCacheFromSupabase()
+  ]).then(()=>{
+    KELAS=getKelas();rebuildKelasSelects();
+    renderDash();
+  }).catch(e=>console.warn('Background load error:',e));
 }
 function logout(){
   // Henti live sync
@@ -1044,28 +1050,21 @@ function logout(){
 
 /* DATA */
 async function loadMurid(){
-  // Cuba Supabase
   if(sb&&!SB_URL.includes('YOUR')){
     try{
-      const{data,error}=await sb.from('murid').select('*').order('kelas').order('nama');
+      // Hanya ambil kolum yang diperlukan — lebih laju
+      const{data,error}=await sb.from('murid').select('id,nama,kelas,jantina,rmt').order('kelas').order('nama');
       if(!error){
-        // Supabase berjaya — guna data dari sana (walaupun kosong)
         murid=data||[];
         localStorage.setItem('muridCache',JSON.stringify(murid));
         return;
       }
-    }catch(e){console.warn('Supabase gagal:',e)}
+    }catch(e){console.warn('Supabase murid gagal:',e)}
   }
-  // Fallback: localStorage (offline mode)
   try{
     const cached=localStorage.getItem('muridCache');
-    if(cached){
-      const parsed=JSON.parse(cached);
-      murid=Array.isArray(parsed)?parsed:[];
-      return;
-    }
+    if(cached){const parsed=JSON.parse(cached);murid=Array.isArray(parsed)?parsed:[];return}
   }catch(e){}
-  // Tiada data langsung — kosong sahaja (BUKAN demo data)
   murid=[];
 }
 function demoMurid(){return[
