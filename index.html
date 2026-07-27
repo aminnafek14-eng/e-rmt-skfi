@@ -1126,12 +1126,15 @@ function showPg(id,btn){
   g('pgT').textContent=pgTitles[id]||id;
   if(id==='kehadiran'){
     aUpdateTick();
-    // Load cache hari ini dari Supabase dulu, kemudian build grid
+    // Tunjuk loading dulu
+    const grid=g('aKG');
+    if(grid)grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--t3);font-size:13px">Memuatkan data kehadiran...</div>';
+    // Load cache hari ini dari Supabase
     const today=isoToday();
     if(sb&&!SB_URL.includes('YOUR')){
       sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',today)
-        .then(({data})=>{
-          if(data&&data.length){
+        .then(({data,error})=>{
+          if(!error&&data&&data.length){
             if(!cache[today])cache[today]={};
             data.forEach(r=>{cache[today][r.kelas]=r.data});
             saveCache();
@@ -1962,39 +1965,46 @@ function buildAdminKelas(){
   const grid=g('aKG');if(!grid)return;
   grid.innerHTML='';
   const today=isoToday();
-  // Tunjuk HANYA kelas yang belum diisi kehadiran hari ini
-  const kelasBelum=KELAS.filter(k=>!(cache[today]&&cache[today][k.id]));
-  const kelasDone=KELAS.filter(k=>!!(cache[today]&&cache[today][k.id]));
 
-  if(kelasBelum.length===0){
-    // Semua kelas dah diisi
-    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:24px 16px;background:var(--mgp);border-radius:var(--rs);border:1px solid var(--mgp3)">
-      <div style="font-size:28px;margin-bottom:8px">✅</div>
-      <div style="font-size:14px;font-weight:700;color:var(--mg2)">Semua ${KELAS.length} kelas telah diisi kehadiran!</div>
-      <div style="font-size:12px;color:var(--t3);margin-top:4px">Tiada kelas yang memerlukan bantuan admin.</div>
-    </div>`;
-    // Sembunyikan seksyen murid jika kelas semua selesai
-    if(aKelasAktif&&(cache[today]&&cache[today][aKelasAktif])){
-      g('aSeksyen').style.display='none';g('aEmptyK').style.display='block';aKelasAktif='';
-    }
+  // Jika KELAS belum diload, tunjuk loading
+  if(!KELAS||KELAS.length===0){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--t3);font-size:13px">Memuatkan senarai kelas...</div>`;
     return;
   }
 
-  // Info berapa kelas dah selesai
-  if(kelasDone.length>0){
-    const infoDiv=document.createElement('div');
-    infoDiv.style.cssText='grid-column:1/-1;padding:8px 12px;background:var(--mgp2);border-radius:var(--rs);border:1px solid var(--mgp3);font-size:12px;color:var(--mg2);margin-bottom:4px;display:flex;align-items:center;gap:6px';
-    infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/></svg>
-      <strong>${kelasDone.length}/${KELAS.length} kelas</strong> telah diisi. Kelas berikut masih perlu diisi:`;
+  // Kelas yang belum dan sudah diisi hari ini
+  const kelasBelum=KELAS.filter(k=>!(cache[today]&&cache[today][k.id]));
+  const kelasDone=KELAS.filter(k=>!!(cache[today]&&cache[today][k.id]));
+
+  // Info status atas
+  const infoDiv=document.createElement('div');
+  infoDiv.style.cssText='grid-column:1/-1;padding:9px 13px;border-radius:var(--rs);font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:6px';
+
+  if(kelasBelum.length===0){
+    // Semua kelas dah diisi
+    infoDiv.style.background='var(--mgp)';infoDiv.style.border='1px solid var(--mgp3)';infoDiv.style.color='var(--mg2)';
+    infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/></svg><strong>Semua ${KELAS.length} kelas telah diisi kehadiran hari ini!</strong>`;
     grid.appendChild(infoDiv);
+    if(aKelasAktif){g('aSeksyen').style.display='none';g('aEmptyK').style.display='block';aKelasAktif='';}
+    return;
   }
 
-  // Papar kelas yang belum diisi sahaja
+  if(kelasDone.length>0){
+    infoDiv.style.background='var(--mgp2)';infoDiv.style.border='1px solid var(--mgp3)';infoDiv.style.color='var(--mg2)';
+    infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/></svg>
+      <strong>${kelasDone.length}/${KELAS.length}</strong> kelas selesai &nbsp;·&nbsp; <strong>${kelasBelum.length}</strong> kelas masih perlu diisi`;
+  } else {
+    infoDiv.style.background='#fff8e1';infoDiv.style.border='1px solid #ffe082';infoDiv.style.color='#e65100';
+    infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Semua <strong>${KELAS.length} kelas</strong> belum diisi kehadiran hari ini`;
+  }
+  grid.appendChild(infoDiv);
+
+  // Papar kelas belum diisi
   kelasBelum.forEach(k=>{
-    const mk=murid.filter(m=>m.kelas===k.id),rmt=mk.filter(m=>m.rmt).length;
+    const rmt=murid.filter(m=>m.kelas===k.id&&m.rmt).length;
     const b=document.createElement('button');
-    b.className='kb';b.dataset.k=k.id;
-    b.onclick=()=>aPilihK(k.id,b);
+    b.className='kb';b.dataset.k=k.id;b.onclick=()=>aPilihK(k.id,b);
     b.innerHTML=`<div class="kb-id">${k.id}</div><div class="kb-nm">${k.panjang}</div>${rmt?`<div class="kb-rmt">${rmt} RMT</div>`:''}`;
     grid.appendChild(b);
   });
