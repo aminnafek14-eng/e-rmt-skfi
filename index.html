@@ -394,32 +394,6 @@ code{font-family:monospace;background:rgba(0,0,0,.07);padding:1px 5px;border-rad
 <main class="main">
 <div class="topbar"><div><div class="tb-title" id="pgT">Isi Kehadiran</div><div class="tb-date" id="tbD"></div></div></div>
 
-<!-- KEHADIRAN -->
-<div class="page active" id="page-kehadiran">
-  <div class="dhero">
-    <div class="dhero-l"><div class="dhero-num" id="dN"></div><div><div class="dhero-day" id="dDy"></div><div class="dhero-full" id="dFl"></div></div></div>
-    <div class="dhero-badge" id="dBdg">Hari Persekolahan</div>
-  </div>
-  <div class="card"><div class="clbl">Pilih Kelas</div><div class="kg" id="KG"></div></div>
-  <div id="seksyen" style="display:none">
-    <div class="sr">
-      <div class="st st-bl"><div class="sn" id="sJ">0</div><div class="sl">Jumlah</div></div>
-      <div class="st st-gn"><div class="sn" id="sH">0</div><div class="sl">Hadir</div></div>
-      <div class="st st-pk"><div class="sn" id="sA">0</div><div class="sl">Tidak Hadir</div></div>
-      <div class="st st-co"><div class="sn" id="sR">0</div><div class="sl">RMT Hadir</div></div>
-    </div>
-    <div class="card">
-      <div class="clbl">Senarai Murid <span class="kib" id="kBdg"></span></div>
-      <div class="sbar"><svg class="sbar-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Cari nama murid..." id="cI" oninput="filMurid()"></div>
-      <div class="ml" id="mL"></div>
-      <div class="abox" id="aBox" style="display:none"><div class="abox-t">Tidak hadir hari ini:</div><div class="cw" id="aC"></div></div>
-      <button class="btn-hantar" id="btnHantar" onclick="hantarK()">Hantar Kehadiran</button>
-      <button class="btn-update" id="btnUpdate" style="display:none" onclick="updateK()">Kemaskini Laporan Hari Ini</button>
-    </div>
-  </div>
-  <div id="emptyK" class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg><div class="empty-t">Pilih kelas untuk mula mengisi kehadiran</div></div>
-</div>
-
 <!-- KEHADIRAN (Admin) -->
 <div class="page" id="page-kehadiran">
   <div class="dhero">
@@ -1964,21 +1938,20 @@ function aUpdateTick(){
 
 function buildAdminKelas(){
   const grid=g('aKG');if(!grid)return;
+  // Cari card parent untuk letak infoDiv
+  const card=grid.parentElement;
+  // Buang infoDiv lama jika ada
+  const oldInfo=card&&card.querySelector('.admin-kelas-info');
+  if(oldInfo)oldInfo.remove();
   grid.innerHTML='';
   const today=isoToday();
 
-  // DEBUG — papar maklumat dalam grid sementara
   console.log('buildAdminKelas called');
   console.log('KELAS length:', KELAS.length, KELAS.map(k=>k.id));
   console.log('cache[today]:', cache[today]?Object.keys(cache[today]):'tiada');
-  console.log('today:', today);
 
-  // Jika KELAS belum diload
   if(!KELAS||KELAS.length===0){
-    grid.innerHTML=`<div style="grid-column:1/-1;padding:16px;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--rs);font-size:13px;color:#e65100">
-      ⚠ Senarai kelas belum diload. Cuba refresh halaman atau semak sambungan Supabase.<br>
-      <small>KELAS.length = 0</small>
-    </div>`;
+    grid.innerHTML=`<div style="text-align:center;padding:20px;color:var(--t3);font-size:13px;grid-column:1/-1">Memuatkan senarai kelas...</div>`;
     return;
   }
 
@@ -1987,16 +1960,16 @@ function buildAdminKelas(){
   const kelasDone=KELAS.filter(k=>cacheKelas.includes(k.id));
 
   console.log('kelasBelum:', kelasBelum.map(k=>k.id));
-  console.log('kelasDone:', kelasDone.map(k=>k.id));
 
-  // Info status
+  // Info div — LUAR grid, dalam card
   const infoDiv=document.createElement('div');
-  infoDiv.style.cssText='grid-column:1/-1;padding:9px 13px;border-radius:var(--rs);font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:6px';
+  infoDiv.className='admin-kelas-info';
+  infoDiv.style.cssText='padding:8px 12px;border-radius:var(--rs);font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:10px';
 
   if(kelasBelum.length===0){
     infoDiv.style.background='var(--mgp)';infoDiv.style.border='1px solid var(--mgp3)';infoDiv.style.color='var(--mg2)';
     infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 11l3 3L22 4"/></svg><strong>Semua ${KELAS.length} kelas telah diisi kehadiran hari ini!</strong>`;
-    grid.appendChild(infoDiv);
+    if(card)card.insertBefore(infoDiv,grid);
     if(aKelasAktif){g('aSeksyen').style.display='none';g('aEmptyK').style.display='block';aKelasAktif='';}
     return;
   }
@@ -2007,12 +1980,11 @@ function buildAdminKelas(){
       <strong>${kelasDone.length}/${KELAS.length}</strong> kelas selesai &nbsp;·&nbsp; <strong>${kelasBelum.length}</strong> kelas masih perlu diisi`;
   } else {
     infoDiv.style.background='#fff8e1';infoDiv.style.border='1px solid #ffe082';infoDiv.style.color='#e65100';
-    infoDiv.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Semua <strong>${KELAS.length} kelas</strong> belum diisi kehadiran hari ini`;
+    infoDiv.innerHTML=`⚠ Semua <strong>${KELAS.length} kelas</strong> belum diisi kehadiran hari ini`;
   }
-  grid.appendChild(infoDiv);
+  if(card)card.insertBefore(infoDiv,grid);
 
-  // Papar kelas belum diisi
+  // Butang kelas dalam grid
   kelasBelum.forEach(k=>{
     const rmt=murid.filter(m=>m.kelas===k.id&&m.rmt).length;
     const b=document.createElement('button');
