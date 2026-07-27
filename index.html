@@ -1124,7 +1124,24 @@ function showPg(id,btn){
   const pg=g('page-'+id);if(pg)pg.classList.add('active');
   if(btn)btn.classList.add('active');
   g('pgT').textContent=pgTitles[id]||id;
-  if(id==='kehadiran'){aUpdateTick();buildAdminKelas();}
+  if(id==='kehadiran'){
+    aUpdateTick();
+    // Load cache hari ini dari Supabase dulu, kemudian build grid
+    const today=isoToday();
+    if(sb&&!SB_URL.includes('YOUR')){
+      sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',today)
+        .then(({data})=>{
+          if(data&&data.length){
+            if(!cache[today])cache[today]={};
+            data.forEach(r=>{cache[today][r.kelas]=r.data});
+            saveCache();
+          }
+          buildAdminKelas();
+        }).catch(()=>buildAdminKelas());
+    } else {
+      buildAdminKelas();
+    }
+  }
   if(id==='dashboard'){const dd=g('dDate');if(dd&&!dd.value)dd.value=isoToday();renderDash()}
   if(id==='panel-rmt')renderRMT();
   if(id==='rekod')renderRekod();
