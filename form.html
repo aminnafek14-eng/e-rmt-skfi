@@ -76,6 +76,14 @@ html,body{min-height:100%;font-family:'Segoe UI',system-ui,sans-serif;background
 .kb.active .kb-rmt{background:rgba(255,255,255,.2)}
 .kb-done{position:absolute;top:4px;right:5px;font-size:9px;background:var(--pp3);color:var(--p2);padding:1px 5px;border-radius:5px;font-weight:700}
 .kb.active .kb-done{background:rgba(255,255,255,.25);color:#fff}
+/* Status kelas: merah = belum isi, hijau = sudah isi */
+#KG .kb:not(.active),#aKG .kb:not(.active){background:#fef2f2;border-color:#fca5a5}
+#KG .kb:not(.active):hover,#aKG .kb:not(.active):hover{background:#fee2e2;border-color:#ef4444}
+#KG .kb:not(.active) .kb-id,#aKG .kb:not(.active) .kb-id{color:#b91c1c}
+#KG .kb.done:not(.active){background:#f0fdf4;border-color:#86efac}
+#KG .kb.done:not(.active):hover{background:#dcfce7;border-color:#22c55e}
+#KG .kb.done:not(.active) .kb-id{color:#15803d}
+#KG .kb.done:not(.active) .kb-done,#KG .kb.done:not(.active) .kb-done-tick{background:#bbf7d0;color:#15803d}
 
 /* STAT */
 .sr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:12px}
