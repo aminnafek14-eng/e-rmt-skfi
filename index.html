@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sistem Kehadiran — SK Felda Inas</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sheetdb.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -678,7 +678,7 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
   </div>
   <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:var(--rs);padding:12px 14px;margin-bottom:14px;font-size:12px;color:#5d4037;line-height:1.7">
     <strong>Tindakan ini tidak boleh dibatalkan.</strong><br>
-    Semua rekod kehadiran yang dipilih akan dipadam secara kekal dari Supabase dan cache tempatan.
+    Semua rekod kehadiran yang dipilih akan dipadam secara kekal dari Sheet dan cache tempatan.
   </div>
   <p style="color:var(--t2);font-size:13px;line-height:1.7" id="resetModalTxt"></p>
   <div class="mbtns">
@@ -691,10 +691,7 @@ html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var
 <div class="lov" id="LOV" style="display:none"><div class="spin"></div><div style="font-size:13px;color:var(--t2);font-weight:500">Memuatkan...</div></div>
 
 <script>
-const SB_URL='https://iwjrfthbxaxeolzskkvc.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3anJmdGhieGF4ZW9senNra3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTg4OTEsImV4cCI6MjEwMDQ5NDg5MX0.s5c4d5eXOKLQm4fmgxgjSbPJ2QYjPBAFHt3sPtQbmCA';
-let sb=null;
-try{if(window.supabase)sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
+// Pangkalan data: Google Sheet melalui Apps Script — lihat sheetdb.js (sb, SB_URL)
 
 const ADMIN_PASS='jba8020';
 const HARI=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
@@ -709,7 +706,7 @@ const KELAS_ASAL=[
   {id:'5E',nama:'Thn 5 Emas',panjang:'Tahun 5 Emas'},
 ];
 let KELAS_DEFAULT=[];
-// Kelas & sesi config — disimpan dalam Supabase, localStorage sebagai cache
+// Kelas & sesi config — disimpan dalam Sheet, localStorage sebagai cache
 function loadKelasConfig(){
   try{const k=localStorage.getItem('kelasCfg');KELAS_DEFAULT=k?JSON.parse(k):[...KELAS_ASAL]}
   catch(e){KELAS_DEFAULT=[...KELAS_ASAL]}
@@ -730,20 +727,20 @@ function loadSesiConfig(){
 }
 function saveSesiConfig(){
   localStorage.setItem('sesiCfg',JSON.stringify(sesiConfig));
-  // Sync ke Supabase
+  // Sync ke Sheet
   if(sb&&!SB_URL.includes('YOUR')){
     sb.from('config').upsert({key:'sesi',value:JSON.stringify(sesiConfig)},{onConflict:'key'}).then(()=>{}).catch(e=>console.warn('saveSesiConfig:',e));
   }
 }
 
-// Load config dari Supabase (dipanggil semasa login)
-async function loadConfigFromSupabase(){
+// Load config dari Sheet (dipanggil semasa login)
+async function loadConfigDariSheet(){
   if(!sb||SB_URL.includes('YOUR'))return;
   try{
     const{data,error}=await sb.from('config').select('*');
     if(error){console.warn('config error:',error);return;}
     if(!data||data.length===0){
-      // Config belum ada dalam Supabase — push dari localStorage/default sekarang
+      // Config belum ada dalam Sheet — push dari localStorage/default sekarang
       await sb.from('config').upsert([
         {key:'kelas',value:JSON.stringify(KELAS_DEFAULT)},
         {key:'sesi',value:JSON.stringify(sesiConfig)}
@@ -770,11 +767,11 @@ async function loadConfigFromSupabase(){
         }catch(e){console.warn('parse sesi:',e)}
       }
     });
-  }catch(e){console.warn('loadConfigFromSupabase:',e)}
+  }catch(e){console.warn('loadConfigDariSheet:',e)}
 }
 
-// Load rekod kehadiran dari Supabase — hanya 7 hari terkini semasa login
-async function loadCacheFromSupabase(){
+// Load rekod kehadiran dari Sheet — hanya 7 hari terkini semasa login
+async function loadCacheDariSheet(){
   if(!sb||SB_URL.includes('YOUR'))return;
   try{
     // Hanya ambil 7 hari terkini — cukup untuk kegunaan harian
@@ -787,10 +784,10 @@ async function loadCacheFromSupabase(){
       cache[r.tarikh][r.kelas]=r.data;
     });
     saveCache();
-  }catch(e){console.warn('loadCacheFromSupabase:',e)}
+  }catch(e){console.warn('loadCacheDariSheet:',e)}
 }
 
-// Load rekod untuk tarikh spesifik dari Supabase (on-demand)
+// Load rekod untuk tarikh spesifik dari Sheet (on-demand)
 async function loadCacheForDate(tarikh){
   if(!sb||SB_URL.includes('YOUR'))return;
   if(cache[tarikh]&&Object.keys(cache[tarikh]).length>0)return; // sudah ada dalam cache
@@ -824,7 +821,6 @@ async function loadCacheForMonth(tahun,bulan){
 function sortKelas(arr){return [...arr].sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true,sensitivity:'base'}))}
 function getKelas(){return sortKelas(KELAS_DEFAULT).map(k=>({...k,sesi:sesiConfig[k.id]||'petang'}))}
 let KELAS=[];
-let liveChannel=null; // Supabase realtime channel
 let role=null,murid=[],kelasAktif='',absen=new Set(),cache={},delId=null,delIds=[],rmtFilt='semua';
 const g=id=>document.getElementById(id);
 function isoToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
@@ -832,59 +828,49 @@ function fmtLong(s){const d=new Date(s+'T00:00:00');return `${HARI[d.getDay()]},
 function dim(y,m){return new Date(y,m+1,0).getDate()}
 function isSchoolDay(d){const day=new Date(d+'T00:00:00').getDay();return day>=1&&day<=5}
 
-/* ── LIVE SYNC via Supabase Realtime ── */
+/* ── LIVE SYNC via polling Google Sheet (setiap 5 saat) ── */
 function startLiveSync(){
-  if(!sb||SB_URL.includes('YOUR'))return;
-  // Unsubscribe kalau ada channel lama
-  if(liveChannel){try{sb.removeChannel(liveChannel)}catch(e){}}
-
-  liveChannel=sb.channel('live-sync')
-    // Sync murid
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'murid'},payload=>{
-      if(!murid.find(m=>m.id===payload.new.id)){
-        murid.push(payload.new);
-        localStorage.setItem('muridCache',JSON.stringify(murid));
-        if(kelasAktif===payload.new.kelas)renderMurid();
-        buildKelas();
+  if(!sb)return;
+  sb.startPolling(async ch=>{
+    const aktif=document.querySelector('.page.active');
+    const pid=aktif?aktif.id.replace('page-',''):'';
+    if(ch.config){
+      await loadConfigDariSheet();
+      KELAS=getKelas();rebuildKelasSelects();buildKelas();
+      if(pid==='kehadiran')buildAdminKelas();
+      if(pid==='admin')loadAL();
+    }
+    if(ch.murid){
+      await loadMurid();
+      buildKelas();if(kelasAktif&&typeof renderMurid==='function')renderMurid();
+      if(pid==='kehadiran')buildAdminKelas();
+      if(pid==='admin')loadAL();
+      if(pid==='panel-rmt')renderRMT();
+      if(pid==='dashboard')renderDashLive();
+    }
+    if(ch.kehadiran){
+      // Muat semula tarikh yang sedang dipaparkan (ganti penuh supaya padam/reset turut disegerak)
+      const today=isoToday();
+      const tarikh=new Set([today]);
+      const dd=g('dDate');if(dd&&dd.value)tarikh.add(dd.value);
+      const rd=g('rekDate');if(rd&&rd.value&&pid==='rekod')tarikh.add(rd.value);
+      for(const t of tarikh){
+        const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',t);
+        if(error||!data)continue;
+        cache[t]={};data.forEach(r=>{cache[t][r.kelas]=r.data});
       }
-    })
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'murid'},payload=>{
-      const i=murid.findIndex(m=>m.id===payload.new.id);
-      if(i>=0){murid[i]=payload.new;localStorage.setItem('muridCache',JSON.stringify(murid));buildKelas();if(kelasAktif===payload.new.kelas||kelasAktif===payload.old?.kelas)renderMurid()}
-    })
-    .on('postgres_changes',{event:'DELETE',schema:'public',table:'murid'},payload=>{
-      murid=murid.filter(m=>m.id!==payload.old.id);
-      localStorage.setItem('muridCache',JSON.stringify(murid));
-      buildKelas();if(kelasAktif)renderMurid();
-    })
-    // Sync kehadiran
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'kehadiran'},payload=>{
-      const r=payload.new;
-      if(!cache[r.tarikh])cache[r.tarikh]={};
-      cache[r.tarikh][r.kelas]=r.data;
+      if(pid==='panel-rmt'){
+        const mb=parseInt(g('rB')?.value),my=parseInt(g('rY')?.value);
+        if(!isNaN(mb)&&!isNaN(my))await loadCacheForMonth(my,mb);
+      }
       saveCache();buildKelas();
-      // Auto refresh dashboard jika terbuka pada tarikh tersebut
-      if(g('page-dashboard').classList.contains('active')&&g('dDate')?.value===r.tarikh){
-        renderDashLive();
-      }
-      showSyncToast('Kehadiran '+r.kelas+' dikemas kini');
-    })
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'kehadiran'},payload=>{
-      const r=payload.new;
-      if(!cache[r.tarikh])cache[r.tarikh]={};
-      cache[r.tarikh][r.kelas]=r.data;
-      saveCache();buildKelas();
-      if(g('page-dashboard').classList.contains('active')&&g('dDate')?.value===r.tarikh){
-        renderDashLive();
-      }
-    })
-    // Sync config kelas & sesi
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'config'},payload=>applyConfigChange(payload.new))
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config'},payload=>applyConfigChange(payload.new))
-    .subscribe(status=>{
-      if(status==='SUBSCRIBED'){console.log('Live sync aktif');}
-      else if(status==='CHANNEL_ERROR'){console.warn('Live sync error — retry dalam 5s');setTimeout(startLiveSync,5000);}
-    });
+      if(pid==='dashboard')renderDashLive();
+      if(pid==='kehadiran')buildAdminKelas();
+      if(pid==='panel-rmt')renderRMT();
+      if(pid==='rekod')renderRekod();
+      showSyncToast('Data kehadiran dikemas kini');
+    }
+  },5000);
 }
 
 function applyConfigChange(row){
@@ -997,11 +983,11 @@ async function enterApp(r){
   showPg('dashboard',dashBtn);
   startLiveSync();
 
-  // Fasa 2: Refresh dari Supabase di background — update UI bila siap
+  // Fasa 2: Refresh dari Sheet di background — update UI bila siap
   Promise.all([
-    loadConfigFromSupabase(),
+    loadConfigDariSheet(),
     loadMurid(),
-    loadCacheFromSupabase()
+    loadCacheDariSheet()
   ]).then(()=>{
     KELAS=getKelas();rebuildKelasSelects();
     renderDash();
@@ -1009,8 +995,7 @@ async function enterApp(r){
 }
 function logout(){
   // Henti live sync
-  if(liveChannel&&sb){try{sb.removeChannel(liveChannel)}catch(e){}}
-  liveChannel=null;
+  if(sb)sb.stopPolling();
   role=null;g('APP').style.display='none';g('LS').style.display='flex';g('ap').value='';g('lerr').style.display='none';lMode='guru';document.querySelectorAll('.ltab').forEach((t,i)=>t.classList.toggle('active',i===0));g('iGuru').style.display='flex';g('iAdmin').style.display='none';g('passW').style.display='none';g('lbtxt').textContent='Masuk sebagai Guru';
 }
 
@@ -1025,7 +1010,7 @@ async function loadMurid(){
         localStorage.setItem('muridCache',JSON.stringify(murid));
         return;
       }
-    }catch(e){console.warn('Supabase murid gagal:',e)}
+    }catch(e){console.warn('Sheet murid gagal:',e)}
   }
   try{
     const cached=localStorage.getItem('muridCache');
@@ -1068,7 +1053,7 @@ function showPg(id,btn){
     if(!KELAS||KELAS.length===0){KELAS=getKelas();}
     const grid=g('aKG');
     if(grid)grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--t3);font-size:13px">Memuatkan data kehadiran...</div>';
-    // Sentiasa fetch terus dari Supabase untuk data paling terkini
+    // Sentiasa fetch terus dari Sheet untuk data paling terkini
     const today=isoToday();
     const doLoad=async()=>{
       if(sb&&!SB_URL.includes('YOUR')){
@@ -1212,10 +1197,10 @@ function saveRec(rec){
     const dashDate=g('dDate')?.value;
     if(dashDate===rec.tarikh) setTimeout(()=>renderDashLive(),10);
   }
-  // Supabase di background
+  // Sheet di background
   if(sb&&!SB_URL.includes('YOUR')){
     sb.from('kehadiran').upsert({tarikh:rec.tarikh,kelas:kelasAktif,data:rec},{onConflict:'tarikh,kelas'})
-      .then(()=>{}).catch(e=>console.warn('Supabase save:',e));
+      .then(()=>{}).catch(e=>console.warn('Sheet save:',e));
   }
 }
 
@@ -1294,7 +1279,7 @@ async function renderDash(){
   if(!t){div.innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><div class="empty-t">Pilih tarikh untuk lihat dashboard</div></div>';return}
   // Render dari cache dulu (serta-merta)
   renderDashHTML(t);
-  // Fetch dari Supabase jika data tarikh ini belum ada dalam cache
+  // Fetch dari Sheet jika data tarikh ini belum ada dalam cache
   if(sb&&!SB_URL.includes('YOUR')){
     const hadaCache=cache[t]&&Object.keys(cache[t]).length>0;
     if(!hadaCache){
@@ -1428,7 +1413,7 @@ function togKD(id,hdr){const b=g(id),op=b.classList.contains('open');b.classList
 function renderRMT(){
   const bulan=parseInt(g('rB').value),tahun=parseInt(g('rY').value);
   if(isNaN(bulan)||isNaN(tahun))return;
-  // Load bulan ini dari Supabase jika belum ada dalam cache (background)
+  // Load bulan ini dari Sheet jika belum ada dalam cache (background)
   loadCacheForMonth(tahun,bulan).then(()=>_renderRMTTable(bulan,tahun));
   // Render dari cache sedia ada dulu (serta-merta)
   _renderRMTTable(bulan,tahun);
@@ -1514,7 +1499,7 @@ async function renderRekod(){
   // Tunjuk loading
   div.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3)"><div style="width:28px;height:28px;border:3px solid var(--bd);border-top-color:var(--mg);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>Memuatkan rekod...</div>';
 
-  // Load dari Supabase jika belum ada dalam cache
+  // Load dari Sheet jika belum ada dalam cache
   if(sb&&!SB_URL.includes('YOUR')){
     try{
       const{data,error}=await sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',t);
@@ -1651,12 +1636,12 @@ async function addMurid(){
   buildKelas();if(kelasAktif===kl)renderMurid();
   g('tNm').value='';g('tRmt').checked=false;
   toast(`✓ ${nm} berjaya ditambah`);
-  // Sync ke Supabase di background, tukar ID sementara kepada ID sebenar
+  // Sync ke Sheet di background, tukar ID sementara kepada ID sebenar
   if(sb&&!SB_URL.includes('YOUR')){
     try{
       const{data,error}=await sb.from('murid').insert([obj]).select();
       if(!error&&data&&data[0]){
-        // Ganti ID sementara dengan ID sebenar dari Supabase
+        // Ganti ID sementara dengan ID sebenar dari Sheet
         const idx=murid.findIndex(m=>m.id===tempId);
         if(idx>=0)murid[idx]=data[0];
         localStorage.setItem('muridCache',JSON.stringify(murid));
@@ -1669,11 +1654,25 @@ async function addMurid(){
   if(idx>=0)murid[idx]={...obj,id:Date.now()};
   localStorage.setItem('muridCache',JSON.stringify(murid));
 }
+// Simpan senarai murid baharu sekali gus (satu panggilan sahaja ke Sheet)
+async function simpanMuridBatch(list){
+  if(!list.length)return;
+  if(sb){
+    try{
+      const{data,error}=await sb.from('murid').insert(list).select();
+      if(!error&&data&&data.length===list.length){
+        murid=murid.filter(m=>!String(m.id).startsWith('tmp_')).concat(data);
+        return;
+      }
+    }catch(e){console.warn(e)}
+  }
+  murid=murid.map(m=>String(m.id).startsWith('tmp_')?{...m,id:Date.now()+Math.random()}:m);
+}
 async function impPukal(){
   const raw=g('pDat').value.trim(),okl=g('pKl').value;
   if(!raw){toast('Tiada data untuk diimport');return}
   const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
-  let ok=0,skip=0,fail=0,errs=[],skipNames=[];
+  let ok=0,skip=0,fail=0,errs=[],skipNames=[],baru=[];
 
   for(const line of lines){
     const p=line.split(',').map(x=>x.trim());
@@ -1688,15 +1687,10 @@ async function impPukal(){
     if(isDup){skip++;skipNames.push(`${nm} (${kl})`);continue}
 
     const obj={nama:nm,kelas:kl,jantina:jt,rmt};
-    let inserted=false;
-    if(sb&&!SB_URL.includes('YOUR')){
-      try{
-        const{data,error}=await sb.from('murid').insert([obj]).select();
-        if(!error&&data&&data[0]){murid.push(data[0]);inserted=true;ok++;}
-      }catch(e){console.warn(e)}
-    }
-    if(!inserted){murid.push({...obj,id:Date.now()+ok+Math.random()});ok++;}
+    baru.push(obj);ok++;
+    murid.push({...obj,id:'tmp_'+Date.now()+'_'+ok}); // sementara — elak duplikasi dalam kumpulan sama
   }
+  await simpanMuridBatch(baru);
 
   localStorage.setItem('muridCache',JSON.stringify(murid));
   buildKelas();loadAL();
@@ -1814,7 +1808,7 @@ async function impExcel(){
   const okl=g('pKlExcel').value;
   const res=g('excelRes');
   res.innerHTML='<div style="font-size:12px;color:var(--t2);padding:8px">Sedang mengimport... jangan tutup halaman ini.</div>';
-  let ok=0,skip=0,fail=0,errs=[],skipNames=[];
+  let ok=0,skip=0,fail=0,errs=[],skipNames=[],baru=[];
 
   for(const r of excelParsedData){
     const nm=String(r[0]||'').trim();
@@ -1831,25 +1825,11 @@ async function impExcel(){
     const isDup=murid.some(m=>m.nama.trim().toLowerCase()===nm.toLowerCase()&&m.kelas===kl);
     if(isDup){skip++;skipNames.push(`${nm} (${kl})`);continue}
 
-    // Insert ke Supabase atau local
     const obj={nama:nm,kelas:kl,jantina:jt,rmt};
-    let inserted=false;
-    if(sb&&!SB_URL.includes('YOUR')){
-      try{
-        const{data,error}=await sb.from('murid').insert([obj]).select();
-        if(!error&&data&&data[0]){
-          murid.push(data[0]); // guna ID dari Supabase
-          inserted=true;
-          ok++;
-        }
-      }catch(e){console.warn('Supabase insert error:',e)}
-    }
-    if(!inserted){
-      // Fallback local — guna timestamp unik
-      murid.push({...obj,id:Date.now()+ok+Math.random()});
-      ok++;
-    }
+    baru.push(obj);ok++;
+    murid.push({...obj,id:'tmp_'+Date.now()+'_'+ok}); // sementara — elak duplikasi dalam kumpulan sama
   }
+  await simpanMuridBatch(baru);
 
   localStorage.setItem('muridCache',JSON.stringify(murid));
   buildKelas();loadAL();
@@ -1939,7 +1919,7 @@ async function confReset(){
   const tahun=g('rsTahunSel')?.value||'';
   closeResetModal();
   g('LOV').style.display='flex';
-  // Delete from Supabase
+  // Delete from Sheet
   if(sb&&!SB_URL.includes('YOUR')){
     try{
       if(scope==='semua'){
@@ -1947,7 +1927,7 @@ async function confReset(){
       } else {
         await sb.from('kehadiran').delete().like('tarikh',tahun+'%');
       }
-    }catch(e){console.warn('Supabase reset error:',e)}
+    }catch(e){console.warn('Sheet reset error:',e)}
   }
   // Clear local cache
   if(scope==='semua'){
@@ -2244,10 +2224,8 @@ async function saveEK(){
   // 3. Update all murid with old kelas → new kelas
   if(idBerubah){
     const muridDalamKelas=murid.filter(m=>m.kelas===idLama);
-    // Update Supabase
-    if(sb&&!SB_URL.includes('YOUR')&&muridDalamKelas.length>0){
-      try{await sb.from('murid').update({kelas:idBaru}).eq('kelas',idLama)}catch(e){console.warn(e)}
-    }
+    // Kemas kini murid + rekod kehadiran dalam satu panggilan ke Sheet
+    const rpcRename=sb?sb.rpc('renameKelas',{idLama,idBaru,namaBaru:panjang}):null;
     // Update local
     murid=murid.map(m=>m.kelas===idLama?{...m,kelas:idBaru}:m);
     localStorage.setItem('muridCache',JSON.stringify(murid));
@@ -2260,18 +2238,7 @@ async function saveEK(){
       }
     });
     saveCache();
-    // Update Supabase kehadiran — update kelas column and namaKelas in data
-    if(sb&&!SB_URL.includes('YOUR')){
-      try{
-        const{data:khData}=await sb.from('kehadiran').select('*').eq('kelas',idLama);
-        if(khData&&khData.length){
-          for(const r of khData){
-            const updatedData={...r.data,kelas:idBaru,namaKelas:panjang};
-            await sb.from('kehadiran').update({kelas:idBaru,data:updatedData}).eq('id',r.id);
-          }
-        }
-      }catch(e){console.warn(e)}
-    }
+    if(rpcRename){try{await rpcRename}catch(e){console.warn(e)}}
   } else {
     // ID sama, tapi nama mungkin berubah — update namaKelas dalam rekod
     murid=murid.map(m=>m.kelas===idBaru?m:m); // no change needed
@@ -2314,14 +2281,8 @@ async function confDK(){
   const k=KELAS_DEFAULT.find(x=>x.id===delKelasId);
   const muridDalamKelas=murid.filter(m=>m.kelas===delKelasId);
   g('LOV').style.display='flex';
-  // 1. Delete murid dalam kelas ini dari Supabase
-  if(sb&&!SB_URL.includes('YOUR')&&muridDalamKelas.length>0){
-    try{await sb.from('murid').delete().eq('kelas',delKelasId)}catch(e){console.warn(e)}
-  }
-  // 2. Delete rekod kehadiran kelas ini dari Supabase
-  if(sb&&!SB_URL.includes('YOUR')){
-    try{await sb.from('kehadiran').delete().eq('kelas',delKelasId)}catch(e){console.warn(e)}
-  }
+  // 1+2. Padam murid & rekod kehadiran kelas ini dalam satu panggilan
+  if(sb){try{await sb.rpc('deleteKelas',{id:delKelasId})}catch(e){console.warn(e)}}
   // 3. Update local data
   murid=murid.filter(m=>m.kelas!==delKelasId);
   localStorage.setItem('muridCache',JSON.stringify(murid));
