@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Isi Kehadiran — SK Felda Inas</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sheetdb.js"></script>
 <style>
 :root{
 --p:#1a56db;--p2:#1e429f;--p3:#1c3d8f;--pp:#ebf5ff;--pp2:#e1effe;--pp3:#bfdbfe;
@@ -228,16 +228,12 @@ html,body{min-height:100%;font-family:'Segoe UI',system-ui,sans-serif;background
 
 <script>
 // ── CONFIG ──
-const SB_URL='https://iwjrfthbxaxeolzskkvc.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3anJmdGhieGF4ZW9senNra3ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MTg4OTEsImV4cCI6MjEwMDQ5NDg5MX0.s5c4d5eXOKLQm4fmgxgjSbPJ2QYjPBAFHt3sPtQbmCA';
 const HARI=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
 const BULAN=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
 const KELAS_ASAL=[{id:'1A',nama:'Thn 1 Arif',panjang:'Tahun 1 Arif'},{id:'2B',nama:'Thn 2 Bestari',panjang:'Tahun 2 Bestari'},{id:'3C',nama:'Thn 3 Cemerlang',panjang:'Tahun 3 Cemerlang'},{id:'4D',nama:'Thn 4 Dinamik',panjang:'Tahun 4 Dinamik'},{id:'5E',nama:'Thn 5 Emas',panjang:'Tahun 5 Emas'}];
 
-let sb=null;
-try{sb=window.supabase.createClient(SB_URL,SB_KEY)}catch(e){}
 
-let murid=[],KELAS=[],kelasAktif='',absen=new Set(),cache={},liveChannel=null;
+let murid=[],KELAS=[],kelasAktif='',absen=new Set(),cache={};
 const g=id=>document.getElementById(id);
 function isoToday(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function sortKelas(a){return[...a].sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true,sensitivity:'base'}))}
@@ -283,7 +279,7 @@ async function loadMurid(){
 
 // LOGIN
 function masuk(){g('LS').style.display='none';g('LOV').style.display='flex';init()}
-function keluar(){g('APP').style.display='none';g('LS').style.display='flex';if(liveChannel&&sb)try{sb.removeChannel(liveChannel)}catch(e){}}
+function keluar(){g('APP').style.display='none';g('LS').style.display='flex';if(sb)sb.stopPolling();}
 
 async function init(){
   tick();setInterval(tick,30000);
@@ -310,27 +306,26 @@ async function loadCacheToday(){
   }catch(e){}
 }
 
-// LIVE SYNC
+// LIVE SYNC — polling Google Sheet setiap 5 saat
 function startSync(){
   if(!sb)return;
-  liveChannel=sb.channel('form-sync')
-    .on('postgres_changes',{event:'*',schema:'public',table:'kehadiran'},payload=>{
-      const r=payload.new||payload.old;
-      if(r&&r.tarikh===isoToday()){
-        if(!cache[r.tarikh])cache[r.tarikh]={};
-        if(payload.new)cache[r.tarikh][payload.new.kelas]=payload.new.data;
-        saveCache();buildKelas();
-        // Refresh semula jika kelas yang sama sedang dibuka
-        if(kelasAktif&&payload.new?.kelas===kelasAktif){}
-      }
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'murid'},async()=>{
-      await loadMurid();buildKelas();if(kelasAktif)renderMurid();
-    })
-    .on('postgres_changes',{event:'*',schema:'public',table:'config'},async payload=>{
-      if(payload.new?.key==='kelas'){try{const p=JSON.parse(payload.new.value);if(Array.isArray(p)&&p.length){KELAS=sortKelas(p);buildKelas();}}catch(e){}}
-    })
-    .subscribe();
+  sb.startPolling(async ch=>{
+    if(ch.config){
+      try{
+        const{data}=await sb.from('config').select('key,value').eq('key','kelas');
+        if(data&&data[0]){const p=JSON.parse(data[0].value);if(Array.isArray(p)&&p.length){KELAS=sortKelas(p);localStorage.setItem('kelasCfg',data[0].value)}}
+      }catch(e){}
+    }
+    if(ch.murid){await loadMurid();if(kelasAktif&&typeof renderMurid==='function')renderMurid()}
+    if(ch.kehadiran){
+      const t=isoToday();
+      try{
+        const{data}=await sb.from('kehadiran').select('tarikh,kelas,data').eq('tarikh',t);
+        if(data){cache[t]={};data.forEach(r=>{cache[t][r.kelas]=r.data});saveCache()}
+      }catch(e){}
+    }
+    buildKelas();
+  },5000);
 }
 
 // BUILD KELAS
